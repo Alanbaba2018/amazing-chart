@@ -32,5 +32,11 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@types/react-reconciler": "^0.18.0",
+    "@types/scheduler": "^0.16.0",
+    "react-reconciler": "^0.22.2",
+    "scheduler": "^0.16.2"
   }
 }
