@@ -2,24 +2,19 @@
   text-align: center;
 }
 
-.App-logo {
-  height: 40vmin;
-}
-
-.App-header {
-  background-color: #282c34;
-  height: 60px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
-.app-body {
-  height: calc(100vh - 60px);
+.candlestick-chart {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 800px;
+  height: 600px;
+  transform: translate(-50%, -50%);
+  border: 1px solid #ddd;
 }
 
 .App-link {
   color: #09d3ac;
+}
+* {
+  box-sizing: border-box;;
 }

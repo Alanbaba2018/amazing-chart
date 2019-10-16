@@ -1,0 +1,19 @@
+* {
+  box-sizing: border-box;
+}
+.candlestick-wrap {
+  display: flex;
+  flex-wrap: wrap;
+}
+.canvas-default {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+.view-wrap {
+  width: calc(100% - 100px);
+  border-right: 1px solid #ddd;
+}
+.axis-wrap  {
+  width: 100px;
+}

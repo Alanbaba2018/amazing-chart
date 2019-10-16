@@ -1,11 +1,11 @@
 import invariant from './invariant';
-import { applyNodeProps, updatePicture, EVENTS_NAMESPACE } from './propsUpdate';
+import { applyNodeProps, updateScene } from './propsUpdate';
 import {
   unstable_scheduleCallback as scheduleDeferredCallback,
   unstable_cancelCallback as cancelDeferredCallback
 } from 'scheduler';
 import { ReactElement } from 'react';
-import * as BinanceChart from '../components/index';
+import * as BinanceChart from '../core/index';
 
 export * from './HostConfigWithNoPersistence';
 export * from './HostConfigWithNoHydration';
@@ -19,19 +19,6 @@ export {
 
 const NO_CONTEXT = {};
 const UPDATE_SIGNAL = {};
-
-export function appendInitialChild(parentInstance: any, child: any) {
-  console.log('appendInitialChild');
-  if (typeof child === 'string') {
-    // Noop for string children of Text (eg <Text>foo</Text>)
-    invariant(false, 'Don not use plain text as child of xCanvas.Node. You are using text: "%s"', child);
-    return;
-  }
-
-  // parentInstance.addWidget(child);
-
-  updatePicture(parentInstance);
-}
 
 export function createInstance(type: string, props: { [k: string]: any }, internalInstanceHandle: any) {
   console.log('createInstance');
@@ -112,24 +99,13 @@ export const isPrimaryRenderer = false;
 
 export const supportsMutation = true;
 
-export function appendChild(parentInstance: any, child: any) {
-  console.log('appendChild');
-  if (child.parent === parentInstance) {
-    child.moveToTop();
-  } else {
-    parentInstance.addWidget(child);
-  }
-  updatePicture(parentInstance);
-}
-
 export function appendChildToContainer(parentInstance: any, child: any) {
-  console.log('appendChildToContainer');
-  if (child.parent === parentInstance) {
-    child.moveToTop();
-  } else {
-    parentInstance.addWidget(child);
-  }
-  updatePicture(parentInstance);
+  console.log('appendChildToContainer', parentInstance, child);
+  // if (child.getParent && child.getParent() === parentInstance) {
+  //   parentInstance.addWidget(child);
+  // }
+  parentInstance.addWidget(child);
+  updateScene(parentInstance);
 }
 
 export function insertBefore(parentInstance: any, child: any, beforeChild: any) {
@@ -141,10 +117,10 @@ export function insertBefore(parentInstance: any, child: any, beforeChild: any) 
   // child._remove() will not stop dragging
   // but child.remove() will stop it, but we don't need it
   // removing will reset zIndexes
-  child._remove();
+  child.remove();
   parentInstance.addWidget(child);
   child.setZIndex(beforeChild.getZIndex());
-  updatePicture(parentInstance);
+  updateScene(parentInstance);
 }
 
 export function insertInContainerBefore(parentInstance: any, child: any, beforeChild: any) {
@@ -155,15 +131,13 @@ export function insertInContainerBefore(parentInstance: any, child: any, beforeC
 export function removeChild(parentInstance: any, child: any) {
   console.log('removeChild');
   child.destroy();
-  child.off(EVENTS_NAMESPACE);
-  updatePicture(parentInstance);
+  updateScene(parentInstance);
 }
 
 export function removeChildFromContainer(parentInstance: any, child: any) {
   console.log('removeChildFromContainer');
   child.destroy();
-  child.off(EVENTS_NAMESPACE);
-  updatePicture(parentInstance);
+  updateScene(parentInstance);
 }
 
 export function commitTextUpdate(textInstance: any, oldText: string, newText: string) {
@@ -194,7 +168,7 @@ export function commitUpdate(
 export function hideInstance(instance: any) {
   console.log('hideInstance');
   instance.hide();
-  updatePicture(instance);
+  updateScene(instance);
 }
 
 export function hideTextInstance() { 

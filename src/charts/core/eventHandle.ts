@@ -1,4 +1,5 @@
 import { CommonObject } from '../typeof/type';
+import { CommonKeys } from '../typeof/const';
 type EventMap = GlobalEventHandlers & {
   [k: string]: any;
 }
@@ -11,28 +12,28 @@ interface EventObject<EventType> {
 
 type EventListener<This, EventType> = (this: This, evt: EventObject<EventType>) => void;
 
-const CommonKeys: {[k: string]: string} = {
-  Change: 'change'
-}
-export default class EventHandle {
+export default abstract class EventHandle {
   private eventListeners: {
     [k: string]: Array<{ name: string; handler: Function }>
   } = {};
-  private attrs: {[k: string]: any} = {};
-  public setAttrs(mapping: CommonObject) {
-    for (const prop in mapping) {
-      this.setAttr(prop, mapping[prop]);
+  public config: CommonObject = {};
+  public getConfig(): CommonObject {
+    return this.config;
+  }
+  public setAttrs(config: CommonObject) {
+    for (const prop in config) {
+      this.setAttr(prop, config[prop]);
     }
   }
   public setAttr(key: string, val: any) {
-    const oval = this.attrs[key];
+    const oval = this.config[key];
     if (oval === val) {
       return;
     }
     if (val === undefined || val === null) {
-      delete this.attrs[key];
+      delete this.config[key];
     } else {
-      this.attrs[key] = val;
+      this.config[key] = val;
     }
     // To do fire attr change;
     this._fireChangeEvent(key, oval, val);
@@ -102,4 +103,5 @@ export default class EventHandle {
       }
     }
   }
+  public registerAttrsReflect() {};
 }

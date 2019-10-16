@@ -1,7 +1,10 @@
 import { CommonObject } from '../typeof/type';
+import BasePanel from '../core/basePanel';
+import IWidget from '../core/widgets/iWidget';
 
 const propsToSkip: {[k: string]: boolean} = {
   children: true,
+  className: true,
   ref: true,
   key: true,
   style: true,
@@ -10,34 +13,13 @@ const propsToSkip: {[k: string]: boolean} = {
   unstable_applyDrawHitFromCache: true
 };
 
-let zIndexWarningShowed = false;
-let dragWarningShowed = false;
-
-export const EVENTS_NAMESPACE = '.react-konva-event';
-
 let useStrictMode: boolean = false;
 export function toggleStrictMode(value: boolean) {
   useStrictMode = value;
 }
 
-const Z_INDEX_WARNING = `ReactChart: You are using "zIndex" attribute for a render node.
-react-chart may get confused with ordering. Just define correct order of elements in your render function of a component.
-`;
 
 export function applyNodeProps(instance: any, props: CommonObject, oldProps: CommonObject = {}) {
-  if (!zIndexWarningShowed && 'zIndex' in props) {
-    console.warn(Z_INDEX_WARNING);
-    zIndexWarningShowed = true;
-  }
-
-  if (!dragWarningShowed && props.draggable) {
-    const hasPosition = props.x !== undefined || props.y !== undefined;
-    const hasEvents = props.onDragEnd || props.onDragMove;
-    if (hasPosition && !hasEvents) {
-      dragWarningShowed = true;
-    }
-  }
-
   for (const key in oldProps) {
     if (propsToSkip[key]) {
       continue;
@@ -79,7 +61,7 @@ export function applyNodeProps(instance: any, props: CommonObject, oldProps: Com
           eventName.substr(8);
       }
       if (props[key]) {
-        instance.on(eventName + EVENTS_NAMESPACE, props[key]);
+        instance.on(eventName, props[key]);
       }
     }
     if (
@@ -94,11 +76,11 @@ export function applyNodeProps(instance: any, props: CommonObject, oldProps: Com
 
   if (hasUpdates) {
     instance.setAttrs(updatedProps);
-    updatePicture(instance);
+    updateScene(instance);
   }
 }
 
-export function updatePicture(node: any) {
-  // const drawingNode = node.getLayer() || node.getStage();
-  // drawingNode && drawingNode.batchDraw();
+export function updateScene(node: BasePanel | IWidget) {
+  const panel = node instanceof IWidget ? node.getParent() : node;
+  panel && panel.update();
 }

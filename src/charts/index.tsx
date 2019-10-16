@@ -1,4 +1,4 @@
-import * as Nodes from './components/index';
+import * as Nodes from './core/index';
 import React from 'react';
 import { CommonObject } from './typeof/type';
 import ChartRenderer from './react-reconciler/chartRenderer';
@@ -34,9 +34,12 @@ function createPanel(panelType: string) {
     public _tagRef: any;
     public _mountNode!: FiberRoot;
     componentDidMount() {
+      console.log('------------container size----------');
+      console.log(`width: ${this._tagRef.clientWidth}, height: ${this._tagRef.clientHeight}`);
+      console.log('-----------------------------------');
       this._chart = new (Nodes as any)[panelType]({
-        width: this.props.width || 300,
-        height: this.props.height || 150,
+        width: this.props.width || this._tagRef.clientWidth,
+        height: this.props.height || this._tagRef.clientHeight,
         container: this._tagRef
       });
       this._setRef(this._chart);
@@ -44,7 +47,7 @@ function createPanel(panelType: string) {
       applyNodeProps(this._chart, this.props);
 
       this._mountNode = ChartRenderer.createContainer(this._chart, false, false);
-      ChartRenderer.updateContainer(this.props.children, this._mountNode, this, () => { });
+      ChartRenderer.updateContainer(this.props.children, this._mountNode, this as any, () => void 0);
     }
 
     _setRef(value: any) {
@@ -63,12 +66,12 @@ function createPanel(panelType: string) {
       this._setRef(this._chart);
       applyNodeProps(this._chart, this.props, prevProps);
 
-      ChartRenderer.updateContainer(this.props.children, this._mountNode, this, () => { });
+      ChartRenderer.updateContainer(this.props.children, this._mountNode, this as any, () => { });
     }
 
     componentWillUnmount() {
       this._setRef(null);
-      ChartRenderer.updateContainer(null, this._mountNode, this, () => { });
+      ChartRenderer.updateContainer(null, this._mountNode, this as any, () => { });
       this._chart.destroy();
     }
 
@@ -89,7 +92,6 @@ function createPanel(panelType: string) {
   }
 }
 
-
 const chartWrapperList: string[] = ['Candlestick'];
 const Types: { [k: string]: any } = {};
 for (const key in Nodes) {
@@ -103,3 +105,4 @@ for (const key in Nodes) {
 export const Candlestick = Types['Candlestick'];
 export const PriceAxis = Types['PriceAxis'];
 export const TimeAxis = Types['TimeAxis'];
+export const PriceGrid = Types['PriceGrid'];
