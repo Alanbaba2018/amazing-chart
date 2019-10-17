@@ -34,9 +34,6 @@ function createPanel(panelType: string) {
     public _tagRef: any;
     public _mountNode!: FiberRoot;
     componentDidMount() {
-      console.log('------------container size----------');
-      console.log(`width: ${this._tagRef.clientWidth}, height: ${this._tagRef.clientHeight}`);
-      console.log('-----------------------------------');
       this._chart = new (Nodes as any)[panelType]({
         width: this.props.width || this._tagRef.clientWidth,
         height: this.props.height || this._tagRef.clientHeight,
@@ -45,7 +42,6 @@ function createPanel(panelType: string) {
       this._setRef(this._chart);
 
       applyNodeProps(this._chart, this.props);
-
       this._mountNode = ChartRenderer.createContainer(this._chart, false, false);
       ChartRenderer.updateContainer(this.props.children, this._mountNode, this as any, () => void 0);
     }
@@ -105,4 +101,4 @@ for (const key in Nodes) {
 export const Candlestick = Types['Candlestick'];
 export const PriceAxis = Types['PriceAxis'];
 export const TimeAxis = Types['TimeAxis'];
-export const PriceGrid = Types['PriceGrid'];
+export const CandlestickGrid = Types['CandlestickGrid'];

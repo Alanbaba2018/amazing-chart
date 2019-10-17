@@ -1,4 +1,6 @@
 import { pow, ln, ceil, abs } from './math';
+import { Zero } from '../typeof/const';
+import { Point } from '../typeof/type';
 
 interface CanvasOptions {
   className?: string;
@@ -61,10 +63,30 @@ export function createCanvasElement(width: number, height: number, options: Canv
   }
   const style: any = options.style; 
   if (style) {
-    for (const cssKey in style) {
-      const cvaStyle: any = canvas.style;
-      cvaStyle[cssKey] = style[cssKey];
-    }
+    setElementStyle(canvas, style);
   }
   return canvas;
+}
+
+export function setElementStyle(element: HTMLElement, styles: {[k: string]: any}) {
+  for (const cssKey in styles) {
+    const eleStyle: any = element.style;
+    eleStyle[cssKey] = styles[cssKey];
+  }
+} 
+
+export function isZero(n: number): boolean {
+  return abs(n) < Zero;
+}
+
+export function geElementOffsetFromParent(e: MouseEvent): Point {
+  const element: HTMLElement = e.target as HTMLElement;
+  const { clientX, clientY } = e;
+  const boundRect = element.getBoundingClientRect();
+  return { x: clientX - boundRect.left, y: clientY - boundRect.top };
+}
+
+//----------time & date--------------
+export function formatTimeStr(timeStr: string): string {
+  return timeStr.replace(/\//g, '-');
 }

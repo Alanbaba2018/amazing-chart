@@ -1,32 +1,41 @@
 import IWidget from './iWidget';
 import CandlestickRenderer from '../renderers/candlestick-renderer';
-import { createCanvasElement } from '../../util/helper';
+import { Point } from '../../typeof/type';
+import { setElementStyle } from '../../util/helper';
+import { Candlestick } from '..';
 
 export default class CandlestickWidget extends IWidget {
   public renderer = new CandlestickRenderer();
   public render() {
-    const ctx: CanvasRenderingContext2D = this._canvas.getContext('2d') as CanvasRenderingContext2D;
+    this.initWidget();
+    const ctx: CanvasRenderingContext2D = this.getContext();
+    const _cacheCtx = this.getParent().getCacheContext();
     this.setCanvasContext(ctx);
-    this.renderer.draw();
+    this.setCanvasContext(_cacheCtx);
+    this.renderer.draw(this.getContext(), this.getVisibleBars());
+    ctx.restore();
   }
-  public createElement() {
+  public initWidget() {
     const parent = this.getParent();
-    const div  = document.createElement('div');
-    div.style.position = 'absolute';
     if (parent) {
       const { marginLeft, marginRight, marginBottom, marginTop, width, height } = parent.getConfig();
-      this.setWidth(width - marginLeft - marginRight)
-        .setHeight(height - marginBottom - marginTop);
-      div.style.left = `${marginLeft}px`;
-      div.style.top = `${marginTop}px`;
-      const style = {
-        position: 'relative',
-        width: `${this.width}px`,
-        height: `${this.height}px`
-      };
-      this._canvas = createCanvasElement(this.width, this.height, { style });
-      div.appendChild(this._canvas);
+      this.setBound({
+        x: marginLeft,
+        y: height - marginBottom,
+        width: width - marginLeft - marginRight,
+        height: height - marginBottom - marginTop
+      });
     }
-    return div;
+  }
+  public getVisibleBars() {
+    const parent = this.getParent() as Candlestick;
+    return parent.getVisibleBars();
+  }
+  public onMousemove(point: Point) {
+    const parent = this.getParent();
+    const _cacheCtx = parent.getCacheContext();
+    this.clearCanvas(_cacheCtx, { ...this.bound, x: 0, y: -this.bound.height });
+    this.renderer.drawCrossLine(_cacheCtx, point, this.getBound());
+    setElementStyle(parent.getCanvas(), { cursor: 'crosshair'});
   }
 }

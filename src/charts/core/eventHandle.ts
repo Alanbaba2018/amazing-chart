@@ -11,7 +11,6 @@ interface EventObject<EventType> {
 }
 
 type EventListener<This, EventType> = (this: This, evt: EventObject<EventType>) => void;
-
 export default abstract class EventHandle {
   private eventListeners: {
     [k: string]: Array<{ name: string; handler: Function }>
@@ -103,5 +102,4 @@ export default abstract class EventHandle {
       }
     }
   }
-  public registerAttrsReflect() {};
 }

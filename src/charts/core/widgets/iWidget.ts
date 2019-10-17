@@ -1,8 +1,9 @@
 import EventHandle from '../eventHandle';
 import IRenderer from '../renderers/iRenderer';
 import BasePanel from '../basePanel';
+import { Bound, CommonObject, Point } from '../../typeof/type';
 
-const ContextProps: string[] = [
+const ContextProps: Array<string | number> = [
   'strokeStyle', 
   'fillStyle', 
   'globalAlpha', 
@@ -21,15 +22,9 @@ const ContextProps: string[] = [
 ];
 
 export default abstract class IWidget extends EventHandle{
+  public config = { zIndex: 0 };
   private _parent!: BasePanel;
-  protected _canvas!: HTMLCanvasElement;
-  public width: number = 0;
-  public height: number = 0;
-  constructor() {
-    super();
-    this.registerAttrsReflect();
-  }
-  public abstract render(): void;
+  public bound: Bound = {x: 0, y: 0, width: 0, height: 0};
   public destroy() {};
   public remove() {
     const parent = this.getParent();
@@ -42,34 +37,45 @@ export default abstract class IWidget extends EventHandle{
       throw new Error("Current Node had parent, Pls don't set parent repeatly!");
     }
     this._parent = parent;
-    
-    this._parent.addElement(this.createElement());
   }
   public getParent(): BasePanel {
     return this._parent;
   }
-  public setWidth(width: number) {
-    this.width = width;
-    return this;
+
+  public getContext(): CanvasRenderingContext2D {
+    const parent = this.getParent();
+    return parent.getContext();
   }
-  public setHeight(height: number) {
-    this.height = height;
+
+  public getBound(): Bound {
+    return this.bound;
+  }
+
+  public setBound(bound: Bound) {
+    this.bound = bound;
     return this;
   }
   public setCanvasContext(ctx: CanvasRenderingContext2D) {
-    this.clearCanvas(ctx);
     ctx.save();
+    const config: CommonObject = this.getConfig();
     for (const key of ContextProps) {
-      if (this.config[key]) {
-        (ctx as any)[key] = this.config[key];
+      if (config[key] !== undefined) {
+        (ctx as any)[key] = config[key];
       }
     }
     ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-    ctx.translate(0, this.height);
+    ctx.translate(this.bound.x, this.bound.y);
   }
-  public clearCanvas(ctx: CanvasRenderingContext2D) {
-    ctx.clearRect(0, 0, this.width, this.height);
+  public clearCanvas(ctx: CanvasRenderingContext2D, bound: Bound) {
+    ctx.clearRect(bound.x, bound.y, bound.width, bound.height);
   }
+  public contain(point: Point): boolean {
+    return point.x > this.bound.x && point.y < this.bound.y
+      && point.x - this.bound.x < this.bound.width
+      && this.bound.y - point.y < this.bound.height
+  }
+  public onMousemove(point: Point) {}
   public abstract renderer: IRenderer;
-  public abstract createElement(): HTMLElement;
+  public abstract initWidget(): void;
+  public abstract render(): void;
 }

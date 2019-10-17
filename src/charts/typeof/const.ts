@@ -25,4 +25,6 @@ export enum TextAlign {
   Right = 'right' // right : 文本右对齐。
 }
 
+export const Zero: number = 1e-5;
+
 

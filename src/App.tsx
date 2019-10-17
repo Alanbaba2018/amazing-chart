@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import './App.css';
-import { Candlestick, PriceAxis, TimeAxis, PriceGrid } from './charts/index';
-// import Candlestick from './charts/components/candlestick';
-// import PriceAxis from './charts/components/axis';
+import { Candlestick, PriceAxis, TimeAxis, CandlestickGrid } from './charts/index';
 
 export default function App()  {
   const [tickNumber] = useState(8);
@@ -23,18 +21,25 @@ export default function App()  {
   ];
   return (
     <div className="App">
-      <Candlestick className="candlestick-chart" seriesData={seriesData}>
+      <Candlestick 
+        className="candlestick-chart" 
+        seriesData={seriesData}
+        marginRight={60}
+        marginLeft={0}
+        marginTop={0}
+        marginBottom={40}
+        >
+        <CandlestickGrid strokeStyle="#f0f6f9" />
         <PriceAxis 
           tickNumber={tickNumber}
           tickWidth={5}
-          strokeStyle="#28343c" 
+          strokeStyle="#50535e" 
           lineWidth={1}
           />
-        <TimeAxis 
+        <TimeAxis
           strokeStyle="#28343c" 
           lineWidth={1}
         />
-        <PriceGrid />
       </Candlestick>
     </div>
   );

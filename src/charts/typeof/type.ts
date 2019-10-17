@@ -34,9 +34,27 @@ export interface TickData {
   v: number | string;
 }
 
+export interface AxisData {
+  xAxisData: TickData[];
+  yAxisData: TickData[];
+}
+
 export interface Bound {
   x: number;
   y: number;
   width: number;
   height: number;
+}
+
+export enum Trend {
+  Up = 'up',
+  Down = 'down',
+}
+export interface CandlestickBar extends Bound, CandlestickItem {
+  type: Trend
+}
+
+export interface Point {
+  x: number;
+  y: number;
 }
