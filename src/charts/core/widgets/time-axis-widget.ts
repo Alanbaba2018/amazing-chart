@@ -1,12 +1,11 @@
 import IWidget from './iWidget';
 import TimeAxisRenderer from '../renderers/time-axis-renderer';
 import { TickData, Point } from '../../typeof/type';
-import Axis from '../../model/axis';
 import { TextBaseLine, TextAlign } from '../../typeof/const';
 import { setElementStyle } from '../../util/helper';
 
 export default class TimeAxisWidget extends IWidget {
-  public config = { textBaseline: TextBaseLine.Top, textAlign: TextAlign.Center, zIndex: 1000 };
+  public config = { textBaseline: TextBaseLine.Top, textAlign: TextAlign.Center, strokeStyle: '#f0f6f9', fillStyle: '#f0f6f9', zIndex: 1000 };
   public renderer = new TimeAxisRenderer();
   public render() {
     this.initWidget();
@@ -38,8 +37,7 @@ export default class TimeAxisWidget extends IWidget {
   public getTicksData(): TickData[] {
     const parent = this.getParent();
     if (parent) {
-      const extent = parent.getTimeExtent();
-      const axis = new Axis([0, 0], extent, [0, this.bound.width]);
+      const axis = parent.getXAxis();
       const axisData = axis.getAxisData();
       return axisData;
     }
@@ -47,6 +45,6 @@ export default class TimeAxisWidget extends IWidget {
   }
   public onMousemove(point: Point) {
     console.log('--------------mousemove at price-axis-widget----------');
-    setElementStyle(this.getParent().getCanvas(), { cursor: 'ew-resize'});
+    setElementStyle(this.getParent().getHitCanvas(), { cursor: 'ew-resize'});
   }
 }

@@ -24,6 +24,9 @@ export default abstract class EventHandle {
       this.setAttr(prop, config[prop]);
     }
   }
+  public getAttr(key: string) {
+    return this.config[key];
+  }
   public setAttr(key: string, val: any) {
     const oval = this.config[key];
     if (oval === val) {

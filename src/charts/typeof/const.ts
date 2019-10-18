@@ -27,4 +27,22 @@ export enum TextAlign {
 
 export const Zero: number = 1e-5;
 
+export const CanvasContextProps: Array<string | number> = [
+  'strokeStyle', 
+  'fillStyle', 
+  'globalAlpha', 
+  'lineWidth', 
+  'lineCap', 
+  'lineJoin', 
+  'miterLimit', 
+  'shadowOffsetX', 
+  'shadowOffsetY', 
+  'shadowBlur', 
+  'shadowColor', 
+  'globalCompositeOperation', 
+  'font', 
+  'textAlign', 
+  'textBaseline'
+];
+
 

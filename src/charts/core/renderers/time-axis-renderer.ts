@@ -31,14 +31,20 @@ export default class TimeAxisRenderer extends IRenderer {
   }
   public drawTicks(ctx: CanvasRenderingContext2D, ticksData: TickData[], height: number, textMargin: number, tickWidth: number) {
     for (const tick of ticksData) {
-      this.drawLine(ctx, tick.p, -height, tick.p, -height + tickWidth);
-      ctx.fillText(`${this.getShowDateLabel(tick.v as number)}`, tick.p, -height + tickWidth + textMargin);
+      const dateLabel = this.getShowDateLabel(tick.v as number);
+      if (dateLabel) {
+        this.drawLine(ctx, tick.p, -height, tick.p, -height + tickWidth);
+        ctx.fillText(dateLabel, tick.p, -height + tickWidth + textMargin);
+      }
     }
   }
   public getShowDateLabel(timestamp: number): string {
     const date = new Date(timestamp);
     const month = date.getMonth();
     const day = date.getDate();
-    return `${MonthLabel[month]} ${day}`;
+    if (day % 7 === 0) {
+      return `${MonthLabel[month]} ${day}`;
+    }
+    return '';
   }
 }

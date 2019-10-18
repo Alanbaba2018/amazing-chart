@@ -58,3 +58,10 @@ export interface Point {
   x: number;
   y: number;
 }
+
+export enum TimeScaleType {
+  Day = 'day',
+  Hour = 'hour',
+  Minute = 'minute',
+  Second = 'second',
+}

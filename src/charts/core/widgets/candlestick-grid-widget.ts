@@ -4,7 +4,7 @@ import Axis from '../../model/axis';
 import { TickData } from '../../typeof/type';
 
 export default class CandlestickGridWidget extends IWidget {
-  public config = { strokeStyle: 'strokeStyle', zIndex: 0 };
+  public config = { strokeStyle: '#242424', zIndex: 0 };
   public renderer = new CandlestickGridRenderer();
   public render() {
     this.initWidget();
@@ -34,7 +34,7 @@ export default class CandlestickGridWidget extends IWidget {
   public getYAxisData(): number[] {
     const parent = this.getParent();
     const extent = parent.getYExtent();
-    const axis = new Axis([0, 0], extent, [0, this.bound.height]);
+    const axis = new Axis(extent, [0, this.bound.height]);
     const yAxisData = axis.getAxisData().map((tickData: TickData) => tickData.p);
     return yAxisData;
   }
@@ -42,7 +42,7 @@ export default class CandlestickGridWidget extends IWidget {
   public getXAxisData(): number[] {
     const parent = this.getParent();
     const extent = parent.getTimeExtent();
-    const axis = new Axis([0, 0], extent, [0, this.bound.width]);
+    const axis = new Axis(extent, [0, this.bound.width]);
     const xAxisData = axis.getAxisData().map((tickData: TickData) => tickData.p);
     return xAxisData;
   }

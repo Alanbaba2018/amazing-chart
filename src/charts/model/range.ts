@@ -15,12 +15,14 @@ export default class Range {
   }
   setMinValue(value: number) {
     this._min = value;
+    return this;
   }
   getMaxValue() {
     return this._max;
   }
   setMaxValue(value: number) {
     this._max = value;
+    return this;
   }
   getInterval() {
     return this._max - this._min;

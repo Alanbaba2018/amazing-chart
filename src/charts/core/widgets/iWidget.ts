@@ -55,9 +55,11 @@ export default abstract class IWidget extends EventHandle{
     this.bound = bound;
     return this;
   }
-  public setCanvasContext(ctx: CanvasRenderingContext2D) {
+  public setCanvasContext(ctx: CanvasRenderingContext2D, config?: CommonObject) {
     ctx.save();
-    const config: CommonObject = this.getConfig();
+    if (!config) {
+      config = this.getConfig();
+    }
     for (const key of ContextProps) {
       if (config[key] !== undefined) {
         (ctx as any)[key] = config[key];
@@ -65,9 +67,6 @@ export default abstract class IWidget extends EventHandle{
     }
     ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
     ctx.translate(this.bound.x, this.bound.y);
-  }
-  public clearCanvas(ctx: CanvasRenderingContext2D, bound: Bound) {
-    ctx.clearRect(bound.x, bound.y, bound.width, bound.height);
   }
   public contain(point: Point): boolean {
     return point.x > this.bound.x && point.y < this.bound.y

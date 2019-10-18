@@ -52,6 +52,7 @@ export function generateScale(originMax: number, originMin: number, originNumber
     tickNumber: originNumber
   };
 }
+// -------------------Start canvas api--------------------
 export function createCanvasElement(width: number, height: number, options: CanvasOptions = { style: {
   position: 'reletive', width: '100%', height: '100%'
 }}) {
@@ -67,7 +68,7 @@ export function createCanvasElement(width: number, height: number, options: Canv
   }
   return canvas;
 }
-
+// -------------------End canvas api--------------------
 export function setElementStyle(element: HTMLElement, styles: {[k: string]: any}) {
   for (const cssKey in styles) {
     const eleStyle: any = element.style;
@@ -86,7 +87,13 @@ export function geElementOffsetFromParent(e: MouseEvent): Point {
   return { x: clientX - boundRect.left, y: clientY - boundRect.top };
 }
 
-//----------time & date--------------
-export function formatTimeStr(timeStr: string): string {
-  return timeStr.replace(/\//g, '-');
+//---------------Start time & date--------------
+export function formatTimeStr(timeStr: string | number): string | number {
+  return typeof timeStr === 'string' ? timeStr.replace(/\//g, '-') : timeStr;
 }
+
+export function getTimestamp(timeStr: string | number): number {
+  timeStr = formatTimeStr(timeStr);
+  return new Date(timeStr).getTime();
+}
+// ---------------End time & date---------------

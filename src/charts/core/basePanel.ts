@@ -1,7 +1,8 @@
 import EventHandle from './eventHandle';
-import { PanelOptions, AxisData, Point } from '../typeof/type';
+import { PanelOptions, AxisData, Point, Bound } from '../typeof/type';
 import IWidget from './widgets/iWidget';
 import Axis from '../model/axis';
+import Canvas from './canvas';
 
 export default abstract class BasePanel extends EventHandle{
   public options!: PanelOptions;
@@ -10,8 +11,10 @@ export default abstract class BasePanel extends EventHandle{
   private _visibleSeriesData: any;
   protected _canvas!: HTMLCanvasElement;
   protected _cacheCanvas!: HTMLCanvasElement;
+  protected _bgCanvas!: HTMLCanvasElement;
   protected _ctx!: CanvasRenderingContext2D;
-  protected _cacheCtx!: CanvasRenderingContext2D;
+  protected _hitCtx!: CanvasRenderingContext2D;
+  protected _bgCtx!: CanvasRenderingContext2D;
   protected _xAxis!: Axis;
   protected _yAxis!: Axis;
   constructor(options: PanelOptions) {
@@ -32,11 +35,18 @@ export default abstract class BasePanel extends EventHandle{
     this._canvas = canvas;
     return this;
   }
-  public getCacheCanvas(): HTMLCanvasElement {
+  public getHitCanvas(): HTMLCanvasElement {
     return this._cacheCanvas;
   }
-  public setCacheCanvas(canvas: HTMLCanvasElement) {
+  public seHitCanvas(canvas: HTMLCanvasElement) {
     this._cacheCanvas = canvas;
+    return this;
+  }
+  public getBgCanvas(): HTMLCanvasElement {
+    return this._bgCanvas;
+  }
+  public setBgCanvas(canvas: HTMLCanvasElement) {
+    this._bgCanvas = canvas;
     return this;
   }
   public getContext(): CanvasRenderingContext2D {
@@ -50,17 +60,34 @@ export default abstract class BasePanel extends EventHandle{
     return this;
   }
 
-  public getCacheContext(): CanvasRenderingContext2D {
-    if (!this._cacheCtx) {
+  public getHitContext(): CanvasRenderingContext2D {
+    if (!this._hitCtx) {
       this.setCacheContext(this._cacheCanvas.getContext('2d') as CanvasRenderingContext2D);
     }
-    return this._cacheCtx;
+    return this._hitCtx;
   }
 
   public setCacheContext(ctx: CanvasRenderingContext2D) {
-    this._cacheCtx = ctx;
+    this._hitCtx = ctx;
   }
 
+  public getBgContext(): CanvasRenderingContext2D {
+    if (!this._bgCtx) {
+      this.setBgContext(this._bgCanvas.getContext('2d') as CanvasRenderingContext2D);
+    }
+    return this._bgCtx;
+  }
+
+  public setBgContext(ctx: CanvasRenderingContext2D) {
+    this._bgCtx = ctx;
+  }
+
+  public getXAxis(): Axis {
+    return this._xAxis;
+  }
+  public getYAxis(): Axis {
+    return this._yAxis;
+  }
   public setVisibleSeriesData<T>(data: T) {
     this._visibleSeriesData = data;
   }
@@ -74,6 +101,7 @@ export default abstract class BasePanel extends EventHandle{
 
   public addWidgets(widgets: IWidget[]) {
     for (const widget of widgets) {
+      this.widgets.push(widget);
       widget.setParent(this);
     }
     this.sortWidgets();
@@ -119,10 +147,21 @@ export default abstract class BasePanel extends EventHandle{
     return this;
   }
 
-  protected clearPanel() {
-    if (this._ctx) {
+  public clearPanel(bound?: Bound) {
+    const ctx = this.getContext();
+    if (ctx) {
+      const { x = 0, y = 0, width = 0, height = 0 } = bound || this.getConfig();
+      ctx.clearRect(x, y, width, height);
+    }
+  }
+  protected setPanelBackground(color: string) {
+    const ctx = this.getBgContext();
+    if (ctx) {
+      ctx.save();
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
       const { width = 0, height = 0 } = this.getConfig();
-      this._ctx.clearRect(0, 0, width, height);
+      Canvas.drawBackground(ctx, { x: 0, y: 0, width, height }, color);
+      ctx.restore();
     }
   }
   protected sortWidgets() {
