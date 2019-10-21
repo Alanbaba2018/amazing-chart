@@ -56,9 +56,7 @@ export default class PriceAxisWidget extends IWidget {
     const parent = this.getParent();
     const yAxis = parent.getYAxis();
     const coeff = deltaY > 0 ? 1.05 : 0.95;
-    console.log(`deltay: ${deltaY}, yAxis: min: ${yAxis.domainRange.getMinValue()}, max: ${yAxis.domainRange.getMaxValue()}`);
     yAxis.scaleAroundCenter(coeff);
-    console.log(`yAxis: min: ${yAxis.domainRange.getMinValue()}, max: ${yAxis.domainRange.getMaxValue()}`);
     parent.update();
   }
 }

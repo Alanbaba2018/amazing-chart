@@ -4,7 +4,7 @@ import { generateScale } from '../util/helper';
 export default class Axis {
   public domainRange!: Range;
   public coordRange!: Range;
-  public unitWidth: number = 50;
+  public unitWidth: number = 80;
   constructor(domain: number[], coordRange: number[], tickNumber: number = 10, linear: boolean = true) {
     this.domainRange = new Range(domain[0], domain[1]);
     this.coordRange = new Range(coordRange[0], coordRange[1]);
@@ -15,9 +15,14 @@ export default class Axis {
   public getAxisData() {
     const min = this.domainRange.getMinValue();
     const coordMax = this.coordRange.getMaxValue();
-    const unitValue = this.domainRange.getInterval() / this.coordRange.getInterval() * this.unitWidth;
+    let unitValue = this.domainRange.getInterval() / this.coordRange.getInterval() * this.unitWidth;
+    let unitWidth = this.unitWidth;
+    if (unitWidth >= 80) {
+      unitWidth /= 2;
+      unitValue /= 2;
+    }
     const ticks = [];
-    for (let start = this.coordRange.getMinValue(), i = 0; start <= coordMax; start += this.unitWidth, i++) {
+    for (let start = this.coordRange.getMinValue(), i = 0; start <= coordMax; start += unitWidth, i++) {
       ticks.push({ p: start, v: min + i * unitValue});
     }
     return ticks;
@@ -33,8 +38,9 @@ export default class Axis {
     return this.domainRange.getMinValue() + (coord - this.coordRange.getMinValue()) / rangeInterval * domainInterval;
   }
   public scaleAroundCenter(coeff: number) {
-    this.domainRange.scaleAroundCenter(coeff);
+    if (this.unitWidth <= 40 && coeff > 1) return;
     this.unitWidth /= coeff;
+    this.domainRange.scaleAroundCenter(coeff);
   }
   private buildAxis() {
     const tickCounts = Math.floor(this.coordRange.getInterval() / this.unitWidth);
