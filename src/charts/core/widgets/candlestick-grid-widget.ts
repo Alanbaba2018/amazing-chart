@@ -4,12 +4,15 @@ import Axis from '../../model/axis';
 import { TickData } from '../../typeof/type';
 
 export default class CandlestickGridWidget extends IWidget {
-  public config = { strokeStyle: '#242424', zIndex: 0 };
+  public config = { zIndex: 0 };
   public renderer = new CandlestickGridRenderer();
   public render() {
     this.initWidget();
     const ctx: CanvasRenderingContext2D = this.getContext();
-    this.setCanvasContext(ctx);
+    const { grid: config } = this.getParent().getConfig();
+    ctx.save();
+    this.setCanvasTransform(ctx);
+    this.setCanvasContextStyle(ctx, config);
     this.renderer.draw(ctx, { bound: this.bound, ...this.getXYTicksData()});
     ctx.restore();
   }

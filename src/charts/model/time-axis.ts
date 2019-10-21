@@ -1,49 +1,76 @@
-import Range from './range';
-import { TimeScaleType } from '../typeof/type';
+import { TimeScaleType, TimeScaleStep } from '../typeof/type';
+import Axis from './axis';
 
-const Day = 24 * 60 * 60 * 1000;
-const Hour = 60 * 60 * 1000;
-const Minute = 60 * 1000;
+const TimeUnitValue = {
+  Day: 24 * 60 * 60 * 1000,
+  Hour: 60 * 60 * 1000,
+  Minute: 60 * 1000,
+  Second: 1000
+};
 
-export default class TimeAxis {
-  public timeDomain!: Range;
-  public coordRange!: Range;
+export default class TimeAxis extends Axis {
   public timeScaleType: TimeScaleType = TimeScaleType.Day;
-  public unitTimeWidth: number = 0;
-  constructor(timeDomain: number[], coorRange: number[], originNumber: number) {
-    this.timeDomain = new Range(timeDomain[0], timeDomain[1]);
-    this.coordRange = new Range(coorRange[0], coorRange[1]);
+  constructor(domainRange: number[], coorRange: number[], originNumber: number) {
+    super(domainRange, coorRange, originNumber, false);
     this.setTimeScale(originNumber);
+    this.unitWidth = this.coordRange.getInterval() / this.tickNumber;
   }
   public getCoordOfValue(v: number) {
-    const domainInterval = this.timeDomain.getInterval();
-    const rangeInterval = this.coordRange.getInterval();
-    return this.coordRange.getMinValue() + (v - this.timeDomain.getMinValue()) / domainInterval * rangeInterval;
+    return this.coordRange.getMinValue() + (v - this.domainRange.getMinValue()) / this.getUnitTimeValue() * this.unitWidth;
   }
+  // 时间刻度前后半格共同组成一个整点
   public getValueOfCoord(coord: number) {
-    const domainInterval = this.timeDomain.getInterval();
-    const rangeInterval = this.coordRange.getInterval();
-    return this.timeDomain.getMinValue() + (coord - this.coordRange.getMinValue()) / rangeInterval * domainInterval;
+    const interval = coord - this.coordRange.getMinValue();
+    return this.domainRange.getMinValue() + Math.round(interval / this.unitWidth) * this.getUnitTimeValue();
+  }
+  public getUnitTimeValue(): number {
+    return TimeUnitValue[this.timeScaleType];
+  }
+  public getAxisData() {
+    const min = this.domainRange.getMinValue();
+    const start = this.coordRange.getMinValue();
+    const coordInterval = this.coordRange.getInterval();
+    const steps = coordInterval / this.unitWidth;
+    const unitTimeValue = this.getUnitTimeValue();
+    const ticks = [];
+    for (let i = 0; i <= steps; i++) {
+      const p = start + i * this.unitWidth;
+      const v = min + i * unitTimeValue;
+      if (this.isTimeInteger(v)) {
+        ticks.push({ p, v });
+      }
+    }
+    return ticks;
+  }
+  private isTimeInteger(v: number): boolean {
+    const integerTime = TimeScaleStep[this.timeScaleType];
+    const d = new Date(v);
+    const timeInfo = {
+      [TimeScaleType.Day]: d.getDate(),
+      [TimeScaleType.Hour]: d.getHours(),
+      [TimeScaleType.Minute]: d.getMinutes(),
+      [TimeScaleType.Second]: d.getSeconds()
+    };
+    return timeInfo[this.timeScaleType] % integerTime === 0;
   }
   private setTimeScale(originNumber: number) {
-    const timeInterval = this.timeDomain.getInterval();
-    const coordInterval = this.coordRange.getInterval();
-    const days = Math.ceil(timeInterval / Day);
+    const timeInterval = this.domainRange.getInterval();
+    const days = Math.ceil(timeInterval / TimeUnitValue.Day) + 1;
     if (originNumber <= days) {
       this.timeScaleType = TimeScaleType.Day;
-      this.unitTimeWidth = coordInterval / days;
+      this.tickNumber = days;
       return;
     }
-    const hours = Math.ceil(timeInterval / Hour);
+    const hours = Math.ceil(timeInterval / TimeUnitValue.Hour) + 1;
     if (originNumber <= hours) {
       this.timeScaleType = TimeScaleType.Hour;
-      this.unitTimeWidth = coordInterval / hours;
+      this.tickNumber = hours;
       return;
     }
-    const minutes = Math.ceil(timeInterval / Minute);
+    const minutes = Math.ceil(timeInterval / TimeUnitValue.Minute) + 1;
     if (originNumber <= minutes) {
       this.timeScaleType = TimeScaleType.Minute;
-      this.unitTimeWidth = coordInterval / minutes;
+      this.tickNumber = minutes;
       return;
     }
   }

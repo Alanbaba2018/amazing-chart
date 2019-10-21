@@ -3,9 +3,8 @@ import { TickData } from '../../typeof/type';
 
 export default class PriceAxisRenderer extends IRenderer {
   public draw(ctx: CanvasRenderingContext2D, data: any) {
-    console.log('-----------------draw PriceAxisRenderer-------------');
+    // console.log('-----------------draw PriceAxisRenderer-------------');
     const { bound: { width, height }, ticksData, textMargin, tickWidth, extendHeight } = data;
-    // this.drawBackground(ctx, {x: 0, y: -height, width, height}, '#12161c');
     ctx.beginPath();
     this.drawBorder(ctx, width, height, extendHeight);
     this.drawTicks(ctx, ticksData, textMargin, tickWidth);

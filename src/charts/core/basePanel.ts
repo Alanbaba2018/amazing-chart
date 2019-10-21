@@ -1,5 +1,6 @@
 import EventHandle from './eventHandle';
 import { PanelOptions, AxisData, Point, Bound } from '../typeof/type';
+import { DevicePixelRatio } from '../typeof/const';
 import IWidget from './widgets/iWidget';
 import Axis from '../model/axis';
 import Canvas from './canvas';
@@ -9,17 +10,24 @@ export default abstract class BasePanel extends EventHandle{
   public widgets: IWidget[] = [];
   private _isWaiting: boolean = false;
   private _visibleSeriesData: any;
+  // 主canvas图层
   protected _canvas!: HTMLCanvasElement;
   protected _cacheCanvas!: HTMLCanvasElement;
+  // 背景色canvas图层
   protected _bgCanvas!: HTMLCanvasElement;
   protected _ctx!: CanvasRenderingContext2D;
+  // 鼠标移动动态canvas图层
   protected _hitCtx!: CanvasRenderingContext2D;
   protected _bgCtx!: CanvasRenderingContext2D;
+  // 坐标轴canvas图层
+  protected _axisCanvas!: HTMLCanvasElement;
+  protected _axisCtx!: CanvasRenderingContext2D;
   protected _xAxis!: Axis;
   protected _yAxis!: Axis;
   constructor(options: PanelOptions) {
     super();
     this.options = options;
+    window.addEventListener('resize', this.resize.bind(this));
   }
   public getSeriesData() {
     const { seriesData = [] } = this.getConfig();
@@ -49,6 +57,13 @@ export default abstract class BasePanel extends EventHandle{
     this._bgCanvas = canvas;
     return this;
   }
+  public getAxisCanvas(): HTMLCanvasElement {
+    return this._axisCanvas;
+  }
+  public setAxisCanvas(canvas: HTMLCanvasElement) {
+    this._axisCanvas = canvas;
+    return this;
+  }
   public getContext(): CanvasRenderingContext2D {
     if (!this._ctx) {
       this.setContext(this._canvas.getContext('2d') as CanvasRenderingContext2D);
@@ -69,6 +84,7 @@ export default abstract class BasePanel extends EventHandle{
 
   public setCacheContext(ctx: CanvasRenderingContext2D) {
     this._hitCtx = ctx;
+    return this;
   }
 
   public getBgContext(): CanvasRenderingContext2D {
@@ -80,6 +96,18 @@ export default abstract class BasePanel extends EventHandle{
 
   public setBgContext(ctx: CanvasRenderingContext2D) {
     this._bgCtx = ctx;
+    return this;
+  }
+  public getAxisContext(): CanvasRenderingContext2D {
+    if (!this._axisCtx) {
+      this.setAxisContext(this._axisCanvas.getContext('2d') as CanvasRenderingContext2D);
+    }
+    return this._axisCtx;
+  }
+
+  public setAxisContext(ctx: CanvasRenderingContext2D) {
+    this._axisCtx = ctx;
+    return this;
   }
 
   public getXAxis(): Axis {
@@ -131,11 +159,20 @@ export default abstract class BasePanel extends EventHandle{
       for (const widget of this.widgets) {
         widget.render();
       }
-      console.log(`redraw: ${Date.now()}`);
       this._isWaiting = false;
     })
   }
 
+  public resize() {
+    const container = this.options.container;
+    if (container) {
+      this.setAttrs({width: container.clientWidth, height: container.clientHeight});
+    }
+    this.updateContainerSize();
+    const { background } = this.getConfig();
+    background && this.setPanelBackground(background);
+    this.update();
+  }
   public removeWidget(widget: IWidget) {
     for (let i = 0; i < this.widgets.length; i++) {
       if (this.widgets[i] === widget) {
@@ -149,18 +186,17 @@ export default abstract class BasePanel extends EventHandle{
 
   public clearPanel(bound?: Bound) {
     const ctx = this.getContext();
-    if (ctx) {
-      const { x = 0, y = 0, width = 0, height = 0 } = bound || this.getConfig();
-      ctx.clearRect(x, y, width, height);
-    }
+    const axisCtx = this.getAxisContext();
+    Canvas.clearRect(ctx, bound);
+    Canvas.clearRect(axisCtx, bound);
   }
   protected setPanelBackground(color: string) {
     const ctx = this.getBgContext();
     if (ctx) {
       ctx.save();
-      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      ctx.scale(DevicePixelRatio, DevicePixelRatio);
       const { width = 0, height = 0 } = this.getConfig();
-      Canvas.drawBackground(ctx, { x: 0, y: 0, width, height }, color);
+      Canvas.drawBackground(ctx, color, { x: 0, y: 0, width, height });
       ctx.restore();
     }
   }
@@ -175,7 +211,8 @@ export default abstract class BasePanel extends EventHandle{
   public destroy() {}
   public abstract getAxisData(): AxisData;
   public abstract getPositonByValue(xValue: number, yValue: number): Point;
-  public abstract getYExtent(): number[]
+  public abstract getYExtent(): number[];
+  public abstract updateContainerSize(): void;
   public getTimeExtent(): number[] {
     return [];
   }

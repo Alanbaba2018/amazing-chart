@@ -51,7 +51,11 @@ export enum Trend {
   Down = 'down',
 }
 export interface CandlestickBar extends Bound, CandlestickItem {
-  type: Trend
+  type: Trend;
+  openY: number;
+  closeY: number;
+  highY: number;
+  lowY: number;
 }
 
 export interface Point {
@@ -60,8 +64,15 @@ export interface Point {
 }
 
 export enum TimeScaleType {
-  Day = 'day',
-  Hour = 'hour',
-  Minute = 'minute',
-  Second = 'second',
+  Day = 'Day',
+  Hour = 'Hour',
+  Minute = 'Minute',
+  Second = 'Second',
+}
+
+export enum TimeScaleStep {
+  Day = 1,
+  Hour = 4,
+  Minute = 30,
+  Second = 15,
 }

@@ -2,6 +2,7 @@ import EventHandle from '../eventHandle';
 import IRenderer from '../renderers/iRenderer';
 import BasePanel from '../basePanel';
 import { Bound, CommonObject, Point } from '../../typeof/type';
+import { DevicePixelRatio } from '../../typeof/const';
 
 const ContextProps: Array<string | number> = [
   'strokeStyle', 
@@ -23,8 +24,9 @@ const ContextProps: Array<string | number> = [
 
 export default abstract class IWidget extends EventHandle{
   public config = { zIndex: 0 };
-  private _parent!: BasePanel;
   public bound: Bound = {x: 0, y: 0, width: 0, height: 0};
+  private _parent!: BasePanel;
+  private _isMouseovered: boolean = false;
   public destroy() {};
   public remove() {
     const parent = this.getParent();
@@ -55,25 +57,29 @@ export default abstract class IWidget extends EventHandle{
     this.bound = bound;
     return this;
   }
-  public setCanvasContext(ctx: CanvasRenderingContext2D, config?: CommonObject) {
-    ctx.save();
-    if (!config) {
-      config = this.getConfig();
-    }
+  public setCanvasTransform(ctx: CanvasRenderingContext2D) {
+    ctx.scale(DevicePixelRatio, DevicePixelRatio);
+    ctx.translate(this.bound.x, this.bound.y);
+  }
+  public setCanvasContextStyle(ctx: CanvasRenderingContext2D, config: CommonObject) {
     for (const key of ContextProps) {
       if (config[key] !== undefined) {
         (ctx as any)[key] = config[key];
       }
     }
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-    ctx.translate(this.bound.x, this.bound.y);
   }
   public contain(point: Point): boolean {
     return point.x > this.bound.x && point.y < this.bound.y
       && point.x - this.bound.x < this.bound.width
       && this.bound.y - point.y < this.bound.height
   }
-  public onMousemove(point: Point) {}
+  public setIsMouseOvered(isOver: boolean) {
+    this._isMouseovered = isOver;
+    return this;
+  }
+  public getIsMouseOvered(): boolean {
+    return this._isMouseovered;
+  }
   public abstract renderer: IRenderer;
   public abstract initWidget(): void;
   public abstract render(): void;

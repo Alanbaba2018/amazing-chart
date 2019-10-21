@@ -1,10 +1,10 @@
 import { pow, ln, ceil, abs } from './math';
-import { Zero } from '../typeof/const';
-import { Point } from '../typeof/type';
+import { Zero, DevicePixelRatio } from '../typeof/const';
+import { Point, TimeScaleType, Bound } from '../typeof/type';
 
 interface CanvasOptions {
   className?: string;
-  style?: {[k: string]: string | number};
+  style?: { [k: string]: string | number };
 }
 export function generateScale(originMax: number, originMin: number, originNumber: number) {
   const originStep = (originMax - originMin) / originNumber;
@@ -53,28 +53,30 @@ export function generateScale(originMax: number, originMin: number, originNumber
   };
 }
 // -------------------Start canvas api--------------------
-export function createCanvasElement(width: number, height: number, options: CanvasOptions = { style: {
-  position: 'reletive', width: '100%', height: '100%'
-}}) {
+export function createCanvasElement(width: number, height: number, options: CanvasOptions = {
+  style: {
+    position: 'reletive', width: '100%', height: '100%'
+  }
+}) {
   const canvas: HTMLCanvasElement = document.createElement('canvas');
-  canvas.width = width * window.devicePixelRatio;
-  canvas.height = height * window.devicePixelRatio;
+  canvas.width = width * DevicePixelRatio;
+  canvas.height = height * DevicePixelRatio;
   if (options.className) {
     canvas.className = options.className;
   }
-  const style: any = options.style; 
+  const style: any = options.style;
   if (style) {
     setElementStyle(canvas, style);
   }
   return canvas;
 }
 // -------------------End canvas api--------------------
-export function setElementStyle(element: HTMLElement, styles: {[k: string]: any}) {
+export function setElementStyle(element: HTMLElement, styles: { [k: string]: any }) {
   for (const cssKey in styles) {
     const eleStyle: any = element.style;
     eleStyle[cssKey] = styles[cssKey];
   }
-} 
+}
 
 export function isZero(n: number): boolean {
   return abs(n) < Zero;
@@ -96,4 +98,52 @@ export function getTimestamp(timeStr: string | number): number {
   timeStr = formatTimeStr(timeStr);
   return new Date(timeStr).getTime();
 }
+
+export function formatTime(time: string | number, famtter: string = 'YYYY-MM-DD hh:mm:ss') {
+  const t = formatTimeStr(time);
+  const d = new Date(t);
+  const o = {
+    "M+": d.getMonth() + 1,                 //月份 
+    "D+": d.getDate(),                    //日 
+    "h+": d.getHours(),                   //小时 
+    "m+": d.getMinutes(),                 //分 
+    "s+": d.getSeconds(),                 //秒 
+  };
+  if (/(Y+)/.test(famtter)) {
+    famtter = famtter.replace(RegExp.$1, (d.getFullYear() + "").substr(4 - RegExp.$1.length));
+  }
+  for (const k in o) {
+    if (new RegExp(`(${k})`).test(famtter)) {
+      const v = (o as any)[k];
+      famtter = famtter.replace(RegExp.$1, (RegExp.$1.length === 1) ? v : (`00${v}`.substr(`${v}`.length)));
+    }
+  }
+  return famtter;
+}
+
+export function getShowDateLabel(timestamp: number, timeScaleType: TimeScaleType, formatter?: string): string {
+  if (formatter) {
+    return formatTime(timestamp, formatter);
+  }
+  if (timeScaleType === TimeScaleType.Minute) {
+    return formatTime(timestamp, 'DD hh:mm');
+  } else {
+    return formatTime(timestamp, 'hh:00');
+  }
+}
 // ---------------End time & date---------------
+
+// ---------------Start number------------------
+export function formatNumber(n: number): string {
+  return `0${n}`.slice(`${n}`.length - 1);
+}
+// ---------------End number---------------------
+
+// ---------------Start geometry-----------------
+export function isBothBoundOverlapped(boundA: Bound, boundB: Bound): boolean {
+  const centerA = { x: boundA.x + boundA.width / 2, y: boundA.y + boundA.height / 2 };
+  const centerB = { x: boundB.x + boundB.width / 2, y: boundB.y + boundB.height / 2 };
+  return abs(centerA.x - centerB.x) <= (boundA.width + boundB.width) / 2 && 
+    abs(centerA.y - centerB.y) <= (boundA.height + boundB.height) / 2; 
+}
+// ---------------End geometry---------------------
