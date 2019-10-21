@@ -13,7 +13,7 @@ export default class TimeAxis extends Axis {
   constructor(domainRange: number[], coorRange: number[], originNumber: number) {
     super(domainRange, coorRange, originNumber, false);
     this.setTimeScale(originNumber);
-    this.unitWidth = this.coordRange.getInterval() / this.tickNumber;
+    
   }
   public getCoordOfValue(v: number) {
     return this.coordRange.getMinValue() + (v - this.domainRange.getMinValue()) / this.getUnitTimeValue() * this.unitWidth;
@@ -58,19 +58,19 @@ export default class TimeAxis extends Axis {
     const days = Math.ceil(timeInterval / TimeUnitValue.Day) + 1;
     if (originNumber <= days) {
       this.timeScaleType = TimeScaleType.Day;
-      this.tickNumber = days;
+      this.unitWidth = this.coordRange.getInterval() / days;
       return;
     }
     const hours = Math.ceil(timeInterval / TimeUnitValue.Hour) + 1;
     if (originNumber <= hours) {
       this.timeScaleType = TimeScaleType.Hour;
-      this.tickNumber = hours;
+      this.unitWidth = this.coordRange.getInterval() / hours;
       return;
     }
     const minutes = Math.ceil(timeInterval / TimeUnitValue.Minute) + 1;
     if (originNumber <= minutes) {
       this.timeScaleType = TimeScaleType.Minute;
-      this.tickNumber = minutes;
+      this.unitWidth = this.coordRange.getInterval() / minutes;
       return;
     }
   }

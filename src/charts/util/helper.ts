@@ -49,7 +49,6 @@ export function generateScale(originMax: number, originMin: number, originNumber
   return {
     max: originMax,
     min: originMin,
-    tickNumber: originNumber
   };
 }
 // -------------------Start canvas api--------------------
