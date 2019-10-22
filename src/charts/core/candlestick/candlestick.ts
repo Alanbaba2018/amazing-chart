@@ -179,6 +179,7 @@ export default class Candlestick extends BasePanel {
   }
   public updateTimeExtend(px: number) {
     const timeAxis = this.getXAxis() as TimeAxis;
+    // To DO shift time is not integer unitValue
     const shiftTime = px / timeAxis.unitWidth * timeAxis.getUnitTimeValue();
     timeAxis.domainRange.shift(shiftTime);
     const visibleData = this.getSeriesData().filter((item: CandlestickItem) => timeAxis.domainRange.contain(item.time as number));

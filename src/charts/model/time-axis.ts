@@ -8,7 +8,7 @@ const TimeUnit = {
   },
   Hour: {
     value: 60 * 60 * 1000,
-    width: 15
+    width: 10
   },
   Minute: {
     value: 60 * 1000,
@@ -26,6 +26,7 @@ export default class TimeAxis extends Axis {
     super(domainRange, coorRange, false);
     this.setTimeScale(originNumber);
   }
+  // To Do 重新计算
   public getCoordOfValue(v: number) {
     return this.coordRange.getMinValue() + (v - this.domainRange.getMinValue()) / this.getUnitTimeValue() * this.unitWidth;
   }
@@ -42,13 +43,21 @@ export default class TimeAxis extends Axis {
     return this;
   }
   public getAxisData() {
-    const min = this.domainRange.getMinValue();
-    const start = this.coordRange.getMinValue();
+    let min = this.domainRange.getMinValue();
+    let start = this.coordRange.getMinValue();
     const coordInterval = this.coordRange.getInterval();
     const steps = coordInterval / this.unitWidth;
     const unitTimeValue = this.getUnitTimeValue();
     const ticks = [];
     for (let i = 0; i <= steps; i++) {
+      // 第一个刻度
+      if (i === 0) {
+        // 起点距离第一个刻度相差的时间
+        const disTime = unitTimeValue - min % unitTimeValue;
+        const disCoord = disTime / unitTimeValue * this.unitWidth;
+        start += disCoord;
+        min += disTime;
+      }
       const p = start + i * this.unitWidth;
       const v = min + i * unitTimeValue;
       if (this.isTimeInteger(v)) {
@@ -101,7 +110,8 @@ export default class TimeAxis extends Axis {
   }
   private resetTimeDomainRange() {
     const coordInterval = this.coordRange.getInterval();
-    const unitCount = Math.round(coordInterval / this.unitWidth);
+    // const unitCount = Math.round(coordInterval / this.unitWidth);
+    const unitCount = coordInterval / this.unitWidth;
     this.domainRange.setMinValue(this.domainRange.getMaxValue() - unitCount * this.getUnitTimeValue());
   }
 }

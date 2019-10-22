@@ -15,6 +15,7 @@ export default class Axis {
   // 从中间向两边绘制
   public getAxisData() {
     let unitWidth = this.unitWidth;
+    // hardcode to adjust display neared ticks interval
     if (unitWidth >= 140) {
       unitWidth /= Math.log(10);
     } else if (unitWidth <= 25) {
@@ -29,10 +30,7 @@ export default class Axis {
     const startValue = this.domainRange.getMinValue() + halfRestWidth % unitWidth / unitWidth * unitValue;
     const ticks = [];
     for (let i = 0; i <= tickCounts; i++) {
-      ticks.push({
-        p: startCoord + i * unitWidth,
-        v: startValue + i * unitValue
-      });
+      ticks.push({ p: startCoord + i * unitWidth, v: startValue + i * unitValue});
     }
     return ticks;
   }
