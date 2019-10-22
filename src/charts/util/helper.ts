@@ -1,6 +1,7 @@
 import { pow, ln, ceil, abs } from './math';
 import { Zero, DevicePixelRatio } from '../typeof/const';
 import { Point, TimeScaleType, Bound } from '../typeof/type';
+import { isNumber, isString } from './type-check';
 
 interface CanvasOptions {
   className?: string;
@@ -89,8 +90,15 @@ export function geElementOffsetFromParent(e: MouseEvent): Point {
 }
 
 //---------------Start time & date--------------
-export function formatTimeStr(timeStr: string | number): string | number {
-  return typeof timeStr === 'string' ? timeStr.replace(/\//g, '-') : timeStr;
+export function formatTimeStr(time: string | number | Date): string | number {
+  if (isNumber(time)) {
+    return time as number;
+  } else if (time instanceof Date) {
+    return time.getTime();
+  } else if (isString(time)) {
+    return (time as string).replace(/\//g, '-');
+  }
+  return NaN;
 }
 
 export function getTimestamp(timeStr: string | number): number {
@@ -98,8 +106,9 @@ export function getTimestamp(timeStr: string | number): number {
   return new Date(timeStr).getTime();
 }
 
-export function formatTime(time: string | number, famtter: string = 'YYYY-MM-DD hh:mm:ss') {
+export function formatTime(time: any, famtter: string = 'YYYY-MM-DD hh:mm:ss') {
   const t = formatTimeStr(time);
+  if (isNaN(t as number)) return famtter;
   const d = new Date(t);
   const o = {
     "M+": d.getMonth() + 1,                 //月份 

@@ -8,7 +8,7 @@ const TimeUnit = {
   },
   Hour: {
     value: 60 * 60 * 1000,
-    width: 10
+    width: 15
   },
   Minute: {
     value: 60 * 1000,

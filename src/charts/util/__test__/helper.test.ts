@@ -1,4 +1,4 @@
-import { isBothBoundOverlapped } from '../../../src/charts/util/helper';
+import { isBothBoundOverlapped, formatTime } from '../helper';
 
 describe('test helper.ts', () => {
   test('two bounds overlap', () => {
@@ -24,4 +24,18 @@ describe('test helper.ts', () => {
     const boundB = { x: 10, y: 10, width: 10, height: 10};
     expect(isBothBoundOverlapped(boundA, boundB)).toBe(true);
   });
+
+  test('format YYYY-MM-DD hh:mm:ss time', () => {
+    const d = new Date(2019, 9, 22).getTime();
+    expect(formatTime(d)).toBe('2019-10-22 00:00:00');
+  });
+
+  test('format NaN timestamp should give default', () => {
+    expect(formatTime(NaN, 'YY-MM-DD')).toBe('YY-MM-DD');
+  });
+
+  test('format undefined should give default', () => {
+    expect(formatTime(undefined, 'YY-MM-DD')).toBe('YY-MM-DD');
+  });
+  
 });
