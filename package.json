@@ -37,6 +37,7 @@
     ]
   },
   "devDependencies": {
+    "pre-commit": "^1.2.2",
     "ts-jest": "^24.1.0"
   }
 }
