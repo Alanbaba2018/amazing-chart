@@ -1,5 +1,5 @@
-export const CommonKeys: {[k: string]: string} = {
-  Change: 'CHANGE'
+export enum CommonKeys {
+  Change = 'CHANGE',
 }
 
 // alphabetic ： (默认)文本基线是普通的字母基线。 英文字母底部对齐

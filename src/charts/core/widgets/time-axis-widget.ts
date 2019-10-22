@@ -11,30 +11,32 @@ export default class TimeAxisWidget extends IWidget {
   constructor() {
     super();
     this.on('mousemove', this.mousemove.bind(this));
+    this.on('mouseout', this.onmouseout.bind(this));
+    this.on('mousedown', this.onmousedown.bind(this));
   }
   public render() {
-    this.initWidget();
     const parent = this.getParent();
-    const { xAxis: config, background } = parent.getConfig();
+    const { xAxis: config, background, marginBottom, marginRight } = parent.getConfig();
     const ctx: CanvasRenderingContext2D = parent.getAxisContext();
     ctx.save();
     this.setCanvasTransform(ctx);
     this.setCanvasContextStyle(ctx, config);
     Canvas.drawBackground(ctx, background, { ...this.bound, x: 0, y: -this.bound.height});
-    const { marginRight } = parent.getConfig();
-    const { tickWidth = 5, textMargin = 5 } = this.getConfig();
+    const { tickWidth, textMargin } = config;
     const xAxis = this.getParent().getXAxis() as TimeAxis;
     this.renderer.draw(ctx, {
       bound: this.bound,
-      extendHeight: marginRight,
       ticksData: this.getTicksData(),
       tickWidth,
       textMargin,
       timeScaleType: xAxis.timeScaleType
     });
+    const rightBottomBound = { x: this.bound.width, y: -this.bound.height, width: marginRight, height: marginBottom };
+    Canvas.drawBackground(ctx, background, rightBottomBound);
+    this.renderer.drawRightBottomBoundBorder(ctx, { x: this.bound.width, y: 0, width: marginRight, height: marginBottom });
     ctx.restore();
   }
-  public initWidget() {
+  public setWidgetBound() {
     const parent = this.getParent();
     const { marginLeft, marginRight, marginBottom, width, height } = parent.getConfig();
     this.setBound({
@@ -53,7 +55,28 @@ export default class TimeAxisWidget extends IWidget {
     }
     return [];
   }
-  public mousemove() {
-    setElementStyle(this.getParent().getHitCanvas(), { cursor: 'ew-resize'});
+  private onmouseout() {
+    const parent = this.getParent();
+    const _hitCtx = parent.getHitContext();
+    Canvas.clearRect(_hitCtx);
+    this.clearDragEvent();
+  }
+  private onmousedown(evt: any) {
+    let { x: startX } = evt.point;
+    this.on('mousemove.mousedown', (e: any) => {
+      const { x: moveX } = e.point;
+      this.getParent().updateTimeExtend(startX - moveX);
+      startX = moveX;
+    });
+    this.on('mouseup.mousedown', this.clearDragEvent)
+  }
+  private clearDragEvent() {
+    this.off('mousemove.mousedown');
+    this.off('mouseup.mousedown');
+  }
+  private mousemove() {
+    if (!this.getAttr('isMouseover')) {
+      setElementStyle(this.getParent().getHitCanvas(), { cursor: 'ew-resize'});
+    }
   }
 }

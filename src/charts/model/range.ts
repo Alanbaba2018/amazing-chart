@@ -51,4 +51,7 @@ export default class Range {
       this._min < range.getMinValue() && this._max > range.getMaxValue()
       : this._min <= range.getMinValue() && this._max >= range.getMaxValue();
   }
+  contain(v: number): boolean {
+    return v >= this.getMinValue() && v <= this.getMaxValue();
+  }
 }

@@ -1,4 +1,9 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Update logs
+- 10.22 
+  - Y轴刻度线按照从中间向两边绘制 And 刻度宽度的梯度变化调整
+  - 右下角区域文字遮罩添加 And 边界线绘制
+  - 时间轴根据视口宽度来展示数据 And 拖动时间轴和绘图区前后拖拽时间轴
+  
 
 ## Available Scripts
 

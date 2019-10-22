@@ -1,19 +1,30 @@
 import { TimeScaleType, TimeScaleStep } from '../typeof/type';
 import Axis from './axis';
 
-const TimeUnitValue = {
-  Day: 24 * 60 * 60 * 1000,
-  Hour: 60 * 60 * 1000,
-  Minute: 60 * 1000,
-  Second: 1000
-};
+const TimeUnit = {
+  Day: {
+    value: 24 * 60 * 60 * 1000,
+    width: 200
+  },
+  Hour: {
+    value: 60 * 60 * 1000,
+    width: 10
+  },
+  Minute: {
+    value: 60 * 1000,
+    width: 5
+  },
+  Second: {
+    value: 1000,
+    width: 2,
+  }
+}
 
 export default class TimeAxis extends Axis {
   public timeScaleType: TimeScaleType = TimeScaleType.Day;
   constructor(domainRange: number[], coorRange: number[], originNumber: number) {
-    super(domainRange, coorRange, originNumber, false);
+    super(domainRange, coorRange, false);
     this.setTimeScale(originNumber);
-    
   }
   public getCoordOfValue(v: number) {
     return this.coordRange.getMinValue() + (v - this.domainRange.getMinValue()) / this.getUnitTimeValue() * this.unitWidth;
@@ -24,7 +35,11 @@ export default class TimeAxis extends Axis {
     return this.domainRange.getMinValue() + Math.round(interval / this.unitWidth) * this.getUnitTimeValue();
   }
   public getUnitTimeValue(): number {
-    return TimeUnitValue[this.timeScaleType];
+    return TimeUnit[this.timeScaleType].value;
+  }
+  public setTimeScaleType(type: TimeScaleType) {
+    this.timeScaleType = type;
+    return this;
   }
   public getAxisData() {
     const min = this.domainRange.getMinValue();
@@ -55,23 +70,38 @@ export default class TimeAxis extends Axis {
   }
   private setTimeScale(originNumber: number) {
     const timeInterval = this.domainRange.getInterval();
-    const days = Math.ceil(timeInterval / TimeUnitValue.Day) + 1;
+    const days = Math.ceil(timeInterval / TimeUnit.Day.value) + 1;
     if (originNumber <= days) {
       this.timeScaleType = TimeScaleType.Day;
-      this.unitWidth = this.coordRange.getInterval() / days;
+      this.unitWidth = TimeUnit.Day.width;
+      this.resetTimeDomainRange();
       return;
     }
-    const hours = Math.ceil(timeInterval / TimeUnitValue.Hour) + 1;
+    const hours = Math.ceil(timeInterval / TimeUnit.Hour.value) + 1;
     if (originNumber <= hours) {
       this.timeScaleType = TimeScaleType.Hour;
-      this.unitWidth = this.coordRange.getInterval() / hours;
+      this.unitWidth = TimeUnit.Hour.width;
+      this.resetTimeDomainRange();
       return;
     }
-    const minutes = Math.ceil(timeInterval / TimeUnitValue.Minute) + 1;
+    const minutes = Math.ceil(timeInterval / TimeUnit.Minute.value) + 1;
     if (originNumber <= minutes) {
       this.timeScaleType = TimeScaleType.Minute;
-      this.unitWidth = this.coordRange.getInterval() / minutes;
+      this.unitWidth = TimeUnit.Minute.width;
+      this.resetTimeDomainRange();
       return;
     }
+    const seconds = Math.ceil(timeInterval / TimeUnit.Second.value) + 1;
+    if (originNumber <= seconds) {
+      this.timeScaleType = TimeScaleType.Second;
+      this.unitWidth = TimeUnit.Second.width;
+      this.resetTimeDomainRange();
+      return;
+    }
+  }
+  private resetTimeDomainRange() {
+    const coordInterval = this.coordRange.getInterval();
+    const unitCount = Math.round(coordInterval / this.unitWidth);
+    this.domainRange.setMinValue(this.domainRange.getMaxValue() - unitCount * this.getUnitTimeValue());
   }
 }

@@ -1,6 +1,6 @@
 import BasePanel from '../basePanel';
 import { PanelOptions, CandlestickItem, Point, AxisData, CandlestickBar, Trend } from '../../typeof/type';
-import { DevicePixelRatio, TextBaseLine, TextAlign } from '../../typeof/const';
+import { DevicePixelRatio, TextBaseLine, TextAlign, CommonKeys } from '../../typeof/const';
 import CandlestickWidget from '../widgets/candlestick-widget';
 import CandlestickGridWidget from '../widgets/candlestick-grid-widget';
 import PriceAxisWidget from '../widgets/price-axis-widget';
@@ -29,12 +29,16 @@ export default class Candlestick extends BasePanel {
       textAlign: TextAlign.Center, 
       strokeStyle: '#f0f6f9', 
       fillStyle: '#f0f6f9',
+      tickWidth: 5,
+      textMargin: 5,
     },
     yAxis: {
       textBaseline: TextBaseLine.Middle, 
       textAlign: TextAlign.Left, 
       strokeStyle: '#f0f6f9', 
       fillStyle: '#f0f6f9',
+      tickWidth: 5,
+      textMargin: 5,
     },
     grid: {
       strokeStyle: '#242424',
@@ -48,12 +52,14 @@ export default class Candlestick extends BasePanel {
     },
     candlestick: {
       [Trend.Up]: {
-        fillColor: '#ff0372',
-        strokeStyle: '#ff0372'
+        fillStyle: '#940505',
+        strokeStyle: '#c60606',
+        lineWidth: 1
       },
       [Trend.Down]: {
-        fillColor: '#00c582',
-        strokeStyle: '#00c582'
+        fillStyle: '#00c582',
+        strokeStyle: '#00c582',
+        lineWidth: 1
       }
     }
   };
@@ -79,23 +85,19 @@ export default class Candlestick extends BasePanel {
   public setAxis() {
     const { marginLeft, marginRight, marginBottom, marginTop, width, height } = this.getConfig();
     const viewBoundSize = { width: width - marginLeft - marginRight, height: height - marginTop - marginBottom };
-    const yExtent = this.getYExtent();
-    this._yAxis = new Axis(yExtent, [0, viewBoundSize.height]);
     const xExtent = this.getTimeExtent();
     this._xAxis = new TimeAxis(xExtent, [0, viewBoundSize.width], this.getVisibleSeriesData<CandlestickItem[]>().length);
+    const visibleData = this.getSeriesData().filter((item: CandlestickItem) => this._xAxis.domainRange.contain(item.time as number));
+    this.setAttr('visibleSeriesData', visibleData);
+    const yExtent = this.getYExtent();
+    this._yAxis = new Axis(yExtent, [0, viewBoundSize.height]);
   }
   public getAxisData(): AxisData {
-    if (!this._xAxis || !this._yAxis) {
-      this.setAxis();
-    }
     const yAxisData = this._yAxis.getAxisData();
     const xAxisData = this._xAxis.getAxisData();
     return { xAxisData, yAxisData };
   }
   public getPositonByValue(xValue: number, yValue: number): Point {
-    if (!this._xAxis || !this._yAxis) {
-      this.setAxis();
-    }
     const x = this._xAxis.getCoordOfValue(xValue);
     const y = this._yAxis.getCoordOfValue(yValue);
     return { x, y };
@@ -113,7 +115,7 @@ export default class Candlestick extends BasePanel {
         x: low.x,
         y: Math.min(open.y, close.y),
         time: timestamp,
-        width: this._xAxis.unitWidth,
+        width: this._xAxis.unitWidth / 2.5,
         height: abs(close.y - open.y),
         openY: open.y,
         closeY: close.y,
@@ -129,49 +131,22 @@ export default class Candlestick extends BasePanel {
       this.setAttrs({width: container.clientWidth, height: container.clientHeight});
     }
     const { width = 0, height = 0 } = this.getConfig();
+    const style = { position: 'absolute', left: 0, top: 0, width: `${width}px`, height: `${height}px` };
     this.seHitCanvas(createCanvasElement(width, height, { 
       className: 'hit-canvas',
-      style: { 
-        position: 'absolute', 
-        left: 0, 
-        top: 0, 
-        width: `${width}px`, 
-        height: `${height}px`, 
-        zIndex: 1
-      }
+      style: { ...style, zIndex: 1 }
     }));
     this.setAxisCanvas(createCanvasElement(width, height, { 
       className: 'axis-canvas',
-      style: { 
-        position: 'absolute', 
-        left: 0, 
-        top: 0, 
-        width: `${width}px`, 
-        height: `${height}px`, 
-        zIndex: 0
-      }
+      style: { ...style, zIndex: 0 }
     }));
     this.setCanvas(createCanvasElement(width, height, { 
       className: 'scene-canvas',
-      style: { 
-        position: 'absolute', 
-        left: 0, 
-        top: 0, 
-        width: `${width}px`, 
-        height: `${height}px`, 
-        zIndex: -1
-      }
+      style: { ...style, zIndex: -1 }
     }));
     this.setBgCanvas(createCanvasElement(width, height, { 
       className: 'bg-canvas', 
-      style: { 
-        position: 'absolute', 
-        left: 0, 
-        top: 0, 
-        width: `${width}px`, 
-        height: `${height}px`, 
-        zIndex: -2
-      }
+      style: { ...style, zIndex: -2}
     }));
     this.addElement(this.getBgCanvas());
     this.addElement(this.getCanvas());
@@ -191,46 +166,107 @@ export default class Candlestick extends BasePanel {
     const hitCanvas = this.getHitCanvas();
     const sceneCanvas = this.getCanvas();
     const bgCanvas = this.getBgCanvas();
+    const axisCanvas = this.getAxisCanvas();
     const { width, height } = this.getConfig();
     this.setAttrs({ width, height });
     const styles = { width: `${width}px`, height: `${height}px` };
-    [hitCanvas, sceneCanvas, bgCanvas].forEach((canvas: HTMLCanvasElement) => {
+    [hitCanvas, sceneCanvas, bgCanvas, axisCanvas].forEach((canvas: HTMLCanvasElement) => {
       canvas.width = width * DevicePixelRatio;
       canvas.height = height * DevicePixelRatio;
       setElementStyle(canvas, styles);
     });
     this.setAxis();
   }
-  private initEvents() {
-    const canvas = this.getHitCanvas();
-    canvas.addEventListener('mousemove', this.onmousemove.bind(this));
-    canvas.addEventListener('wheel', this.onmousewheel.bind(this));
+  public updateTimeExtend(px: number) {
+    const timeAxis = this.getXAxis() as TimeAxis;
+    const shiftTime = px / timeAxis.unitWidth * timeAxis.getUnitTimeValue();
+    timeAxis.domainRange.shift(shiftTime);
+    const visibleData = this.getSeriesData().filter((item: CandlestickItem) => timeAxis.domainRange.contain(item.time as number));
+    this.setAttr('visibleSeriesData', visibleData);
+    this.updateYExtend();
+    this.update();
   }
-  private onmousemove(e: MouseEvent) {
+  public updateYExtend() {
+    const yExtent = this.getYExtent();
+    this._yAxis.domainRange.setMinValue(yExtent[0])
+      .setMaxValue(yExtent[1]);
+  }
+  private initEvents() {
+    this.on(`seriesData${CommonKeys.Change}`, () => {
+      this.setAxis();
+    });
+    const canvas = this.getHitCanvas();
+    canvas.addEventListener('mousedown', this.eventHandler.bind(this, 'mousedown'));
+    canvas.addEventListener('mousemove', this.eventHandler.bind(this, 'mousemove'));
+    canvas.addEventListener('mouseup', this.eventHandler.bind(this, 'mouseup'));
+    canvas.addEventListener('mouseout', this.eventHandler.bind(this, 'mouseout'));
+    canvas.addEventListener('wheel', this.eventHandler.bind(this, 'mousewheel'));
+  }
+  private eventHandler(eventType: string, e: MouseEvent) {
+    const eventActions = {
+      mousedown: this.onmousedown,
+      mousemove: this.onmousemove,
+      mousewheel: this.onmousewheel,
+      mouseup: this.onmouseup,
+      mouseout: this.onmouseout
+    };
     const point: Point = geElementOffsetFromParent(e);
+    const evt = { point, originEvent: e};
+    if ((eventActions as any)[eventType]) {
+      (eventActions as any)[eventType].call(this, evt);
+    }
+  }
+  private onmousedown(evt: any) {
+    this.eachWidgets((widget: IWidget) => {
+      const isContain = widget.contain(evt.point);
+      if (isContain) {
+        widget.fire('mousedown', evt);
+      }
+      widget.setAttr('isMousedown', isContain);
+    });
+  }
+  private onmousemove(evt: any) {
     let isMoveToWidget: boolean = false;
     this.eachWidgets((widget: IWidget) => {
-      const isContain = widget.contain(point);
+      const isContain = widget.contain(evt.point);
+      const isMouseover = widget.getAttr('isMouseover');
       if (isContain) {
         isMoveToWidget = true;
-        if (!widget.getIsMouseOvered()) {
-          widget.fire('mouseover');
+        if (!isMouseover) {
+          widget.fire('mouseover', evt);
         }
-        widget.setIsMouseOvered(true);
-        widget.fire('mousemove', { point });
-      } else if (widget.getIsMouseOvered()) {
-        widget.fire('mouseout');
+        widget.fire('mousemove', evt);
+        !isMouseover && widget.setAttr('isMouseover', true);
+      } else if (isMouseover) {
+        widget.fire('mouseout', evt);
+        widget.setAttr('isMouseover', false);
       }
     });
     if (!isMoveToWidget) {
       setElementStyle(this.getHitCanvas(), { cursor: 'default'});
     }
   }
-  private onmousewheel(e: MouseWheelEvent) {
-    const point: Point = geElementOffsetFromParent(e);
+  private onmouseup(evt: any) {
     this.eachWidgets((widget: IWidget) => {
-      if (widget.contain(point)) {
-        widget.fire('mousewheel', { originEvent: e, point });
+      const isContain = widget.contain(evt.point);
+      if (isContain) {
+        widget.fire('mouseup', evt);
+      }
+    });
+  }
+  private onmouseout() {
+    this.eachWidgets((widget: IWidget) => {
+      const isMouseover = widget.getAttr('isMouseover');
+      if (isMouseover) {
+        widget.setAttr('isMouseover', false);
+        widget.fire('mouseout');
+      }
+    })
+  }
+  private onmousewheel(evt: any) {
+    this.eachWidgets((widget: IWidget) => {
+      if (widget.contain(evt.point)) {
+        widget.fire('mousewheel', evt);
       }
     });
   }

@@ -13,26 +13,24 @@ export default class PriceAxisWidget extends IWidget {
     this.on('mousewheel', this.onmousewheel.bind(this));
   }
   public render() {
-    this.initWidget();
     const parent = this.getParent();
-    const { yAxis: config, background} = parent.getConfig();
+    const { yAxis: config, background } = parent.getConfig();
     const ctx: CanvasRenderingContext2D = parent.getAxisContext();
     ctx.save();
     this.setCanvasTransform(ctx);
     this.setCanvasContextStyle(ctx, config);
     Canvas.drawBackground(ctx, background, { ...this.bound, x: 0, y: -this.bound.height});
-    const { tickWidth = 5, textMargin = 5 } = this.getConfig();
-    const { marginBottom } = this.getParent().getConfig();
+    const { tickWidth, textMargin } = config;
     this.renderer.draw(ctx, {
       bound: this.bound,
-      extendHeight: marginBottom,
       ticksData: this.getTicksData(),
       tickWidth,
       textMargin
     });
+    
     ctx.restore();
   }
-  public initWidget() {
+  public setWidgetBound() {
     const parent = this.getParent();
     const { marginRight, marginBottom, marginTop, width, height } = parent.getConfig();
     this.setBound({
@@ -49,7 +47,9 @@ export default class PriceAxisWidget extends IWidget {
     return axisData;
   }
   public onmousemove() {
-    setElementStyle(this.getParent().getHitCanvas(), { cursor: 'ns-resize'});
+    if (!this.getAttr('isMouseover')) {
+      setElementStyle(this.getParent().getHitCanvas(), { cursor: 'ns-resize'});
+    }
   }
   public onmousewheel(data: CommonObject) {
     const { deltaY } = data.originEvent;

@@ -26,7 +26,6 @@ export default abstract class IWidget extends EventHandle{
   public config = { zIndex: 0 };
   public bound: Bound = {x: 0, y: 0, width: 0, height: 0};
   private _parent!: BasePanel;
-  private _isMouseovered: boolean = false;
   public destroy() {};
   public remove() {
     const parent = this.getParent();
@@ -73,14 +72,7 @@ export default abstract class IWidget extends EventHandle{
       && point.x - this.bound.x < this.bound.width
       && this.bound.y - point.y < this.bound.height
   }
-  public setIsMouseOvered(isOver: boolean) {
-    this._isMouseovered = isOver;
-    return this;
-  }
-  public getIsMouseOvered(): boolean {
-    return this._isMouseovered;
-  }
   public abstract renderer: IRenderer;
-  public abstract initWidget(): void;
+  public abstract setWidgetBound(): void;
   public abstract render(): void;
 }

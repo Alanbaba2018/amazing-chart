@@ -72,7 +72,7 @@ export enum TimeScaleType {
 
 export enum TimeScaleStep {
   Day = 1,
-  Hour = 4,
+  Hour = 6,
   Minute = 30,
   Second = 15,
 }

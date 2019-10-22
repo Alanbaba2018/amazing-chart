@@ -9,7 +9,6 @@ export default abstract class BasePanel extends EventHandle{
   public options!: PanelOptions;
   public widgets: IWidget[] = [];
   private _isWaiting: boolean = false;
-  private _visibleSeriesData: any;
   // 主canvas图层
   protected _canvas!: HTMLCanvasElement;
   protected _cacheCanvas!: HTMLCanvasElement;
@@ -34,7 +33,7 @@ export default abstract class BasePanel extends EventHandle{
     return seriesData;
   }
   public getVisibleSeriesData<T>(): T {
-    return this._visibleSeriesData || this.getSeriesData();
+    return this.getAttr('visibleSeriesData') || this.getSeriesData();
   }
   public getCanvas(): HTMLCanvasElement {
     return this._canvas;
@@ -116,21 +115,20 @@ export default abstract class BasePanel extends EventHandle{
   public getYAxis(): Axis {
     return this._yAxis;
   }
-  public setVisibleSeriesData<T>(data: T) {
-    this._visibleSeriesData = data;
-  }
 
   public addWidget(widget: IWidget) {
     widget.setParent(this);
     this.widgets.push(widget);
+    widget.setWidgetBound();
     this.sortWidgets();
     return this;
   }
 
   public addWidgets(widgets: IWidget[]) {
     for (const widget of widgets) {
-      this.widgets.push(widget);
       widget.setParent(this);
+      this.widgets.push(widget);
+      widget.setWidgetBound();
     }
     this.sortWidgets();
     return this;
@@ -169,7 +167,8 @@ export default abstract class BasePanel extends EventHandle{
       this.setAttrs({width: container.clientWidth, height: container.clientHeight});
     }
     this.updateContainerSize();
-    const { background } = this.getConfig();
+    this.eachWidgets((widget: IWidget) => widget.setWidgetBound());
+    const background = this.getAttr('background');
     background && this.setPanelBackground(background);
     this.update();
   }
@@ -213,6 +212,8 @@ export default abstract class BasePanel extends EventHandle{
   public abstract getPositonByValue(xValue: number, yValue: number): Point;
   public abstract getYExtent(): number[];
   public abstract updateContainerSize(): void;
+  public updateTimeExtend(px: number) {};
+  public updateYExtend() {};
   public getTimeExtent(): number[] {
     return [];
   }

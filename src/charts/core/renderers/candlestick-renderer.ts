@@ -58,20 +58,22 @@ export default class CandlestickRenderer extends IRenderer {
     // draw red bars
     ctx.fillStyle = config[Trend.Up].fillStyle;
     ctx.strokeStyle = config[Trend.Up].strokeStyle;
+    ctx.lineWidth = config[Trend.Up].lineWidth;
     ctx.beginPath();
     for (const bar of bars) { 
       const type = bar.type;
       const { x, y, width, height } = this.getBarData(bar);
       if (type === Trend.Up) {
         ctx.strokeRect(x, y, width, height);
+        ctx.fillRect(x, y, width, height);
         this.drawLine(ctx, bar.x, -bar.highY, bar.x, y);
         this.drawLine(ctx, bar.x, -bar.lowY, bar.x, y + height);
       }
     }
-    // ctx.fill();
     ctx.stroke();
     ctx.fillStyle = config[Trend.Down].fillStyle;
     ctx.strokeStyle = config[Trend.Down].strokeStyle;
+    ctx.lineWidth = config[Trend.Down].lineWidth;
     ctx.beginPath();
     for (const bar of bars) { 
       const type = bar.type;
@@ -82,15 +84,14 @@ export default class CandlestickRenderer extends IRenderer {
         this.drawLine(ctx, bar.x, -bar.highY, bar.x, y);
       }
     }
-    // ctx.fill();
     ctx.stroke();
   }
   private getBarData(bar: CandlestickBar): Bound {
     const { x, y, width, height } = bar;
     return {
-      x: x - width / 3,
+      x: x - width,
       y: -(y + height),
-      width: width / 3 * 2,
+      width: width * 2,
       height
     };
   }

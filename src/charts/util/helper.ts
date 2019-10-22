@@ -121,6 +121,10 @@ export function formatTime(time: string | number, famtter: string = 'YYYY-MM-DD 
 }
 
 export function getShowDateLabel(timestamp: number, timeScaleType: TimeScaleType, formatter?: string): string {
+  const d = new Date(timestamp);
+  if (d.getHours() === 0) {
+    return formatTime(timestamp, 'MM-DD hh:00');
+  }
   if (formatter) {
     return formatTime(timestamp, formatter);
   }

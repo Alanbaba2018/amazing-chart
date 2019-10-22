@@ -4,26 +4,35 @@ import { generateScale } from '../util/helper';
 export default class Axis {
   public domainRange!: Range;
   public coordRange!: Range;
-  public unitWidth: number = 80;
-  constructor(domain: number[], coordRange: number[], tickNumber: number = 10, linear: boolean = true) {
+  public unitWidth: number = 60;
+  constructor(domain: number[], coordRange: number[], linear: boolean = true) {
     this.domainRange = new Range(domain[0], domain[1]);
     this.coordRange = new Range(coordRange[0], coordRange[1]);
     if (linear) {
       this.buildAxis();
     }
   }
+  // 从中间向两边绘制
   public getAxisData() {
-    const min = this.domainRange.getMinValue();
-    const coordMax = this.coordRange.getMaxValue();
-    let unitValue = this.domainRange.getInterval() / this.coordRange.getInterval() * this.unitWidth;
     let unitWidth = this.unitWidth;
-    if (unitWidth >= 80) {
-      unitWidth /= 2;
-      unitValue /= 2;
+    if (unitWidth >= 140) {
+      unitWidth /= Math.log(10);
+    } else if (unitWidth <= 25) {
+      unitWidth *= Math.log(100);
+    } else if (unitWidth <= 45) {
+      unitWidth *= Math.log(10);
     }
+    const unitValue = this.domainRange.getInterval() / this.coordRange.getInterval() * unitWidth;
+    const halfRestWidth = this.coordRange.getInterval() / 2  - unitWidth / 2;
+    const tickCounts = Math.floor(halfRestWidth / unitWidth) * 2 + 1;
+    const startCoord = this.coordRange.getMinValue() + halfRestWidth % unitWidth;
+    const startValue = this.domainRange.getMinValue() + halfRestWidth % unitWidth / unitWidth * unitValue;
     const ticks = [];
-    for (let start = this.coordRange.getMinValue(), i = 0; start <= coordMax; start += unitWidth, i++) {
-      ticks.push({ p: start, v: min + i * unitValue});
+    for (let i = 0; i <= tickCounts; i++) {
+      ticks.push({
+        p: startCoord + i * unitWidth,
+        v: startValue + i * unitValue
+      });
     }
     return ticks;
   }
@@ -38,11 +47,11 @@ export default class Axis {
     return this.domainRange.getMinValue() + (coord - this.coordRange.getMinValue()) / rangeInterval * domainInterval;
   }
   public scaleAroundCenter(coeff: number) {
-    if (this.unitWidth <= 40 && coeff > 1) return;
+    if ((this.unitWidth <= 20 && coeff > 1) || (this.unitWidth > 160 && coeff < 1)) return;
     this.unitWidth /= coeff;
     this.domainRange.scaleAroundCenter(coeff);
   }
-  private buildAxis() {
+  public buildAxis() {
     const tickCounts = Math.floor(this.coordRange.getInterval() / this.unitWidth);
     const { min, max } = generateScale(this.domainRange.getMaxValue(), this.domainRange.getMinValue(), tickCounts);
     this.domainRange.setMinValue(min)
