@@ -65,7 +65,7 @@ export default class TimeAxisWidget extends IWidget {
     let { x: startX } = evt.point;
     this.on('mousemove.mousedown', (e: any) => {
       const { x: moveX } = e.point;
-      this.getParent().updateTimeExtend(startX - moveX);
+      this.getParent().shiftTimeLine(startX - moveX);
       startX = moveX;
     });
     this.on('mouseup.mousedown', this.clearDragEvent)

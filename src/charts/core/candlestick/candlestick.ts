@@ -31,6 +31,7 @@ export default class Candlestick extends BasePanel {
       fillStyle: '#f0f6f9',
       tickWidth: 5,
       textMargin: 5,
+      scaleRatio: 0.05,
     },
     yAxis: {
       textBaseline: TextBaseLine.Middle, 
@@ -39,6 +40,7 @@ export default class Candlestick extends BasePanel {
       fillStyle: '#f0f6f9',
       tickWidth: 5,
       textMargin: 5,
+      scaleRatio: 0.04,
     },
     grid: {
       strokeStyle: '#242424',
@@ -87,10 +89,13 @@ export default class Candlestick extends BasePanel {
     const viewBoundSize = { width: width - marginLeft - marginRight, height: height - marginTop - marginBottom };
     const xExtent = this.getTimeExtent();
     this._xAxis = new TimeAxis(xExtent, [0, viewBoundSize.width], this.getVisibleSeriesData<CandlestickItem[]>().length);
-    const visibleData = this.getSeriesData().filter((item: CandlestickItem) => this._xAxis.domainRange.contain(item.time as number));
-    this.setAttr('visibleSeriesData', visibleData);
+    this.setVisibleSeriesData();
     const yExtent = this.getYExtent();
     this._yAxis = new Axis(yExtent, [0, viewBoundSize.height]);
+  }
+  public setVisibleSeriesData() {
+    const visibleData = this.getSeriesData().filter((item: CandlestickItem) => this._xAxis.domainRange.contain(item.time as number));
+    this.setAttr('visibleSeriesData', visibleData);
   }
   public getAxisData(): AxisData {
     const yAxisData = this._yAxis.getAxisData();
@@ -177,20 +182,26 @@ export default class Candlestick extends BasePanel {
     });
     this.setAxis();
   }
-  public updateTimeExtend(px: number) {
+  public shiftTimeLine(px: number) {
     const timeAxis = this.getXAxis() as TimeAxis;
-    // To DO shift time is not integer unitValue
     const shiftTime = px / timeAxis.unitWidth * timeAxis.getUnitTimeValue();
     timeAxis.domainRange.shift(shiftTime);
-    const visibleData = this.getSeriesData().filter((item: CandlestickItem) => timeAxis.domainRange.contain(item.time as number));
-    this.setAttr('visibleSeriesData', visibleData);
+    this.setVisibleSeriesData();
+    this.updateYExtend();
+    this.update();
+  }
+  public updateTimeExtent() {
+    this.setVisibleSeriesData();
     this.updateYExtend();
     this.update();
   }
   public updateYExtend() {
     const yExtent = this.getYExtent();
-    this._yAxis.domainRange.setMinValue(yExtent[0])
-      .setMaxValue(yExtent[1]);
+    const newCenter = (yExtent[0] + yExtent[1]) / 2;
+    const halfInterval = (yExtent[1] - yExtent[0]) / 2;
+    const scaleCoeff = this._yAxis.getScaleCoeff();
+    this._yAxis.domainRange.setMinValue(newCenter - halfInterval * scaleCoeff)
+      .setMaxValue(newCenter + halfInterval * scaleCoeff);
   }
   private initEvents() {
     this.on(`seriesData${CommonKeys.Change}`, () => {

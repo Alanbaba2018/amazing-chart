@@ -20,5 +20,11 @@ describe('test range.js', () => {
     range.shift(20);
     expect(range.getMinValue()).toBe(20);
     expect(range.getMaxValue()).toBe(120);
-  })
+  });
+  test('range scaleAroundPoint', () => {
+    const range = new Range(10, 100);
+    range.scaleAroundPoint(50, 0.5);
+    expect(range.getMinValue()).toBe(30);
+    expect(range.getMaxValue()).toBe(75);
+  });
 })

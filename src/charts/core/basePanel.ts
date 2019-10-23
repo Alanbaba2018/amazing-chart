@@ -212,7 +212,8 @@ export default abstract class BasePanel extends EventHandle{
   public abstract getPositonByValue(xValue: number, yValue: number): Point;
   public abstract getYExtent(): number[];
   public abstract updateContainerSize(): void;
-  public updateTimeExtend(px: number) {};
+  public shiftTimeLine(px: number) {};
+  public updateTimeExtent() {};
   public updateYExtend() {};
   public getTimeExtent(): number[] {
     return [];

@@ -1,38 +1,48 @@
 import Range from './range';
-import { generateScale } from '../util/helper';
 
 export default class Axis {
   public domainRange!: Range;
   public coordRange!: Range;
   public unitWidth: number = 60;
+  private _displayUnitWidth: number = 60;
+  // current scale ratio, so that we can calculate y-Extent updated map to axis
+  protected _scaleCoeff: number = 4;
+  protected _maxScaleCoeff: number = 6;
+  protected _minScaleCoeff: number = 1;
   constructor(domain: number[], coordRange: number[], linear: boolean = true) {
     this.domainRange = new Range(domain[0], domain[1]);
     this.coordRange = new Range(coordRange[0], coordRange[1]);
     if (linear) {
-      this.buildAxis();
+      this.domainRange.scaleAroundCenter(this._scaleCoeff);
     }
   }
-  // 从中间向两边绘制
+  // from middle to both sides draw
   public getAxisData() {
-    let unitWidth = this.unitWidth;
+    this._displayUnitWidth = this.unitWidth;
     // hardcode to adjust display neared ticks interval
-    if (unitWidth >= 140) {
-      unitWidth /= Math.log(10);
-    } else if (unitWidth <= 25) {
-      unitWidth *= Math.log(100);
-    } else if (unitWidth <= 45) {
-      unitWidth *= Math.log(10);
+    if (this._displayUnitWidth >= 140) {
+      this._displayUnitWidth /= Math.log(10);
+    } else if (this._displayUnitWidth <= 25) {
+      this._displayUnitWidth *= Math.log(100);
+    } else if (this._displayUnitWidth <= 45) {
+      this._displayUnitWidth *= Math.log(10);
     }
-    const unitValue = this.domainRange.getInterval() / this.coordRange.getInterval() * unitWidth;
-    const halfRestWidth = this.coordRange.getInterval() / 2  - unitWidth / 2;
-    const tickCounts = Math.floor(halfRestWidth / unitWidth) * 2 + 1;
-    const startCoord = this.coordRange.getMinValue() + halfRestWidth % unitWidth;
-    const startValue = this.domainRange.getMinValue() + halfRestWidth % unitWidth / unitWidth * unitValue;
+    const unitValue = this.domainRange.getInterval() / this.coordRange.getInterval() * this._displayUnitWidth;
+    const halfRestWidth = this.coordRange.getInterval() / 2  - this._displayUnitWidth / 2;
+    const tickCounts = Math.ceil(halfRestWidth / this._displayUnitWidth) * 2;
+    const startCoord = this.coordRange.getMinValue() + halfRestWidth % this._displayUnitWidth;
+    const startValue = this.domainRange.getMinValue() + halfRestWidth % this._displayUnitWidth / this._displayUnitWidth * unitValue;
     const ticks = [];
-    for (let i = 0; i <= tickCounts; i++) {
-      ticks.push({ p: startCoord + i * unitWidth, v: startValue + i * unitValue});
+    for (let i = 0; i < tickCounts; i++) {
+      ticks.push({ p: startCoord + i * this._displayUnitWidth, v: startValue + i * unitValue});
     }
     return ticks;
+  }
+  public getUnitTimeValue(): number {
+    return this.domainRange.getInterval() / this.coordRange.getInterval() * this.unitWidth;
+  }
+  public getScaleCoeff(): number {
+    return this._scaleCoeff;
   }
   public getCoordOfValue(v: number) {
     const domainInterval = this.domainRange.getInterval();
@@ -45,14 +55,9 @@ export default class Axis {
     return this.domainRange.getMinValue() + (coord - this.coordRange.getMinValue()) / rangeInterval * domainInterval;
   }
   public scaleAroundCenter(coeff: number) {
-    if ((this.unitWidth <= 20 && coeff > 1) || (this.unitWidth > 160 && coeff < 1)) return;
+    if (this._scaleCoeff * coeff > this._maxScaleCoeff  || this._scaleCoeff * coeff < this._minScaleCoeff) return;
     this.unitWidth /= coeff;
+    this._scaleCoeff *= coeff;
     this.domainRange.scaleAroundCenter(coeff);
-  }
-  public buildAxis() {
-    const tickCounts = Math.floor(this.coordRange.getInterval() / this.unitWidth);
-    const { min, max } = generateScale(this.domainRange.getMaxValue(), this.domainRange.getMinValue(), tickCounts);
-    this.domainRange.setMinValue(min)
-      .setMaxValue(max);
   }
 }

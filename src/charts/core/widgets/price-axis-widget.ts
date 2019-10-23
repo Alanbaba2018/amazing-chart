@@ -27,7 +27,6 @@ export default class PriceAxisWidget extends IWidget {
       tickWidth,
       textMargin
     });
-    
     ctx.restore();
   }
   public setWidgetBound() {
@@ -46,16 +45,19 @@ export default class PriceAxisWidget extends IWidget {
     const axisData = axis.getAxisData();
     return axisData;
   }
-  public onmousemove() {
+  private onmousemove() {
     if (!this.getAttr('isMouseover')) {
       setElementStyle(this.getParent().getHitCanvas(), { cursor: 'ns-resize'});
     }
   }
-  public onmousewheel(data: CommonObject) {
+  private onmousewheel(data: CommonObject) {
     const { deltaY } = data.originEvent;
     const parent = this.getParent();
     const yAxis = parent.getYAxis();
-    const coeff = deltaY > 0 ? 1.05 : 0.95;
+    const scaleRatio = parent.getAttr('yAxis').scaleRatio;
+    // deltaY > 0 ? 1.05 : 0.95;
+    // zoomIn and zoomOut should be reciprocal relationship
+    const coeff = deltaY > 0 ? (1 + scaleRatio) : 1 / (1 + scaleRatio);
     yAxis.scaleAroundCenter(coeff);
     parent.update();
   }

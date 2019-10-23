@@ -14,6 +14,7 @@ export default function App() {
       close: Number(close)
     }
   });
+  console.log(JSON.stringify(seriesData))
   const props = {
     className: "candlestick-chart",
     seriesData: seriesData,
