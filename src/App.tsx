@@ -1,6 +1,6 @@
 import React from 'react';
 import './App.css';
-import Candlestick from './charts/candlestick';
+import Candlestick from './charts1/index';
 import candlestickJson from './data.json';
 
 export default function App() {
@@ -14,7 +14,6 @@ export default function App() {
       close: Number(close)
     }
   });
-  console.log(JSON.stringify(seriesData))
   const props = {
     className: "candlestick-chart",
     seriesData: seriesData,
