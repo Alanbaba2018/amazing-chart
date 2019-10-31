@@ -1,5 +1,6 @@
 import { TimeScaleType, TimeScaleStep } from '../typeof/type';
 import Axis from './axis';
+import { TickData } from '../../charts1/typeof/type';
 
 const TimeUnit = {
   [TimeScaleType.Day]: {
@@ -56,7 +57,7 @@ export default class TimeAxis extends Axis {
     const coordInterval = this.coordRange.getInterval();
     const steps = coordInterval / this.unitWidth;
     const unitTimeValue = this.getUnitTimeValue();
-    const ticks = [];
+    const ticks: TickData[] = [];
     for (let i = 0; i <= steps; i++) {
       // 第一个刻度
       if (i === 0) {

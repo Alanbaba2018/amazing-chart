@@ -85,6 +85,7 @@ export default class Candlestick extends BasePanel {
     return [Math.min(...values), Math.max(...values)];
   }
   public setAxis() {
+    console.log('setAxis');
     const { marginLeft, marginRight, marginBottom, marginTop, width, height } = this.getConfig();
     const viewBoundSize = { width: width - marginLeft - marginRight, height: height - marginTop - marginBottom };
     const xExtent = this.getTimeExtent();
@@ -168,6 +169,7 @@ export default class Candlestick extends BasePanel {
     this.addWidgets([candlewWidget, candlestickGridWidget, priceAxisWidget, timeAxisWidget]);
   }
   public updateContainerSize() {
+    console.log('updateContainerSize');
     const hitCanvas = this.getHitCanvas();
     const sceneCanvas = this.getCanvas();
     const bgCanvas = this.getBgCanvas();
@@ -184,11 +186,10 @@ export default class Candlestick extends BasePanel {
   }
   public shiftTimeLine(px: number) {
     const timeAxis = this.getXAxis() as TimeAxis;
-    const shiftTime = px / timeAxis.unitWidth * timeAxis.getUnitTimeValue();
+    let shiftTime = px / timeAxis.unitWidth * timeAxis.getUnitTimeValue();
+    shiftTime = Math.floor(shiftTime);
     timeAxis.domainRange.shift(shiftTime);
-    this.setVisibleSeriesData();
-    this.updateYExtend();
-    this.update();
+    this.updateTimeExtent()
   }
   public updateTimeExtent() {
     this.setVisibleSeriesData();

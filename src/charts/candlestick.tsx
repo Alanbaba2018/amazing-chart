@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { CommonObject, CommonContextProps } from './typeof/type';
 import CandlestickPanel from './core/candlestick/candlestick';
 
@@ -52,21 +52,27 @@ function applyNodeProps(instance: CandlestickPanel, props: CommonObject) {
     instance.update();
   }
 }
-const Candlestick: React.FC = (props: CommonContextProps) => {
-  let tagRef!: HTMLElement;
+const Candlestick: React.FC = (props: CommonContextProps, ref) => {
+  const containerRef = useRef(null)
+  const candlestickRef = useRef<CandlestickPanel>()
+  useImperativeHandle(ref, () => ({
+    getCandlestick: () => candlestickRef.current,
+  }))
   useEffect(() => {
-    const candlestickPanel = new CandlestickPanel({
-      container: tagRef
-    });
-    applyNodeProps(candlestickPanel, props);
-  });
+    if (!candlestickRef.current) {
+      candlestickRef.current = new CandlestickPanel({
+        container: containerRef.current as any,
+      })
+    }
+    applyNodeProps(candlestickRef.current, props)
+  })
   return (
     <div
-      ref={ref => (tagRef = ref as HTMLElement)}
+      ref={containerRef}
       className={props.className}
       style={props.style}
     />
   )
 }
 
-export default Candlestick;
+export default forwardRef(Candlestick);

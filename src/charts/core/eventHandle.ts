@@ -1,16 +1,6 @@
 import { CommonObject } from '../typeof/type';
 import { CommonKeys } from '../typeof/const';
-type EventMap = GlobalEventHandlers & {
-  [k: string]: any;
-}
 
-interface EventObject<EventType> {
-  target: any;
-  evt: EventType;
-  currentTarget: EventHandle;
-}
-
-type EventListener<This, EventType> = (this: This, evt: EventObject<EventType>) => void;
 export default abstract class EventHandle {
   private eventListeners: {
     [k: string]: Array<{ name: string; handler: Function }>

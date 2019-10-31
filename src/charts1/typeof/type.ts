@@ -1,49 +1,49 @@
 import { CSSProperties, ReactNode } from 'react'
 
 export interface PanelOptions {
-  width?: number,
-  height?: number,
-  container: HTMLElement;
+  width?: number
+  height?: number
+  container: HTMLElement
 }
 
 export interface CommonObject {
-  [k: string]: any;
+  [k: string]: any
 }
 
 export interface CommonContextProps {
-  className?: string;
-  style?: CSSProperties;
-  children?: ReactNode | any[];
+  className?: string
+  style?: CSSProperties
+  children?: ReactNode | any[]
 }
 
 export interface ChangedAttr {
-  oldVal: any;
-  newVal: any;
+  oldVal: any
+  newVal: any
 }
 
 export interface CandlestickItem {
-  time: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
+  time: number
+  open: number
+  high: number
+  low: number
+  close: number
 }
 
 export interface TickData {
-  p: number;
-  v: number | string;
+  p: number
+  v: number | string
 }
 
 export interface AxisData {
-  xAxisData: TickData[];
-  yAxisData: TickData[];
+  xAxisData: TickData[]
+  yAxisData: TickData[]
 }
 
 export interface Bound {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+  x: number
+  y: number
+  width: number
+  height: number
 }
 
 export enum Trend {
@@ -51,30 +51,33 @@ export enum Trend {
   Down = 'down',
 }
 export interface CandlestickBar extends Bound, CandlestickItem {
-  type: Trend;
-  openY: number;
-  closeY: number;
-  highY: number;
-  lowY: number;
+  type: Trend
+  openY: number
+  closeY: number
+  highY: number
+  lowY: number
 }
 
 export interface Point {
-  x: number;
-  y: number;
+  x: number
+  y: number
 }
 
 export enum TimeScaleType {
+  Month = 'Month',
+  Week = 'Week',
   Day = 'Day',
   Hour = 'Hour',
   Minute = 'Minute',
   Second = 'Second',
 }
 
-export enum TimeScaleStep {
-  Day = 1,
-  Hour = 6,
-  Minute = 30,
-  Second = 15,
+export const TimeInterval = {
+  [TimeScaleType.Month]: 1,
+  [TimeScaleType.Day]: 24 * 3600 * 1000,
+  [TimeScaleType.Hour]: 3600 * 1000,
+  [TimeScaleType.Minute]: 60 * 1000,
+  [TimeScaleType.Second]: 1000,
 }
 
 export enum CommonKeys {
@@ -89,11 +92,11 @@ export enum CommonKeys {
 // bottom ： 文本基线是 em 方框的底端。底部对齐
 export enum TextBaseLine {
   Alphabetic = 'alphabetic',
-  Top ='top',
+  Top = 'top',
   Hanging = 'hanging',
   Middle = 'middle',
   Ideographic = 'ideographic',
-  Bottom = 'bottom'
+  Bottom = 'bottom',
 }
 
 export enum TextAlign {
@@ -101,7 +104,7 @@ export enum TextAlign {
   End = 'end', // end : 文本在指定的位置结束。
   Center = 'center', // center: 文本的中心被放置在指定的位置。
   Left = 'left', // left : 文本左对齐。
-  Right = 'right' // right : 文本右对齐。
+  Right = 'right', // right : 文本右对齐。
 }
 
 export const Zero: number = 1e-5
@@ -139,4 +142,53 @@ export const ShortMonthLabel: string[] = [
   'Dec',
 ]
 
-export const DevicePixelRatio = window.devicePixelRatio || 1
+export const RegisterEvents: string[] = ['mousedown', 'mousemove', 'mouseup', 'mouseout', 'wheel']
+
+export interface TimeScale {
+  type: TimeScaleType
+  number: number
+}
+
+export const TimeScales = [
+  {
+    type: TimeScaleType.Month,
+    number: 6,
+  },
+  {
+    type: TimeScaleType.Month,
+    number: 3,
+  },
+  {
+    type: TimeScaleType.Month,
+    number: 1,
+  },
+  {
+    type: TimeScaleType.Day,
+    number: 7,
+  },
+  {
+    type: TimeScaleType.Day,
+    number: 1,
+  },
+  {
+    type: TimeScaleType.Hour,
+    number: 6,
+  },
+  {
+    type: TimeScaleType.Hour,
+    number: 1,
+  },
+  {
+    type: TimeScaleType.Minute,
+    number: 30,
+  },
+  {
+    type: TimeScaleType.Minute,
+    number: 15,
+  },
+]
+
+export enum DrawMode {
+  All = 'All',
+  Scene = 'Scene',
+}

@@ -1,33 +1,57 @@
 {
   "compilerOptions": {
+    "types": [
+      "react",
+      "jest",
+      "node"
+    ],
+    "jsx": "react",
+    "rootDir": "src",
+    "outDir": "dist",
+    "baseUrl": ".",
+    "allowSyntheticDefaultImports": true,
+    "module": "esnext",
     "target": "es5",
     "lib": [
+      "es5",
+      "es6",
+      "es7",
+      "es2017",
       "dom",
-      "dom.iterable",
       "esnext"
     ],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "strict": true,
-    "forceConsistentCasingInFileNames": true,
-    "module": "esnext",
+    "sourceMap": true,
     "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "noImplicitAny": false,
-    "jsx": "react"
+    "strictNullChecks": true,
+    "removeComments": true,
+    "suppressImplicitAnyIndexErrors": true,
+    "esModuleInterop": true,
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "strictPropertyInitialization": false
   },
   "include": [
-    "src"
+    "src/**/*"
   ],
   "exclude": [
-    "src/charts"
+    "src/**/*.test.tsx",
+    "src/**/*.stories.tsx",
+    "node_modules",
+    "dist",
+    "scripts",
+    "src/setupTests.ts",
+    "src/storybooks/**/*",
+    "src/**/*.mock.js",
+    "src/**/*.mdx"
   ]
 }

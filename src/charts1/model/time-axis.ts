@@ -1,139 +1,207 @@
-import { TimeScaleType, TimeScaleStep, TickData } from '../typeof/type'
+import { TimeScaleType, TimeScale, TimeScales, TimeInterval, TickData } from '../typeof/type'
+import { getDaysBetween, getHoursBetween, getMinutesBetween } from '../util/helper'
 import Axis from './axis'
 
-const TimeUnit = {
-  [TimeScaleType.Day]: {
-    value: 24 * 60 * 60 * 1000,
-    width: 30,
-  },
-  [TimeScaleType.Hour]: {
-    value: 60 * 60 * 1000,
-    width: 10,
-  },
-  [TimeScaleType.Minute]: {
-    value: 60 * 1000,
-    width: 5,
-  },
-  [TimeScaleType.Second]: {
-    value: 1000,
-    width: 2,
-  },
-}
 export default class TimeAxis extends Axis {
-  public timeScaleType: TimeScaleType = TimeScaleType.Day;
+  public unitWidth: number = 20
 
-  protected _scaleCoeff: number = 1;
+  protected timeUnitValue: number = 0
 
-  protected _maxScaleCoeff: number = 10;
+  protected _scaleCoeff: number = 1
 
-  protected _minScaleCoeff: number = 0.3;
+  protected _maxScaleCoeff: number = 9
 
-  constructor (domainRange: number[], coorRange: number[], originNumber: number) {
+  protected _minScaleCoeff: number = 0.5
+
+  private _currentTimeScale: TimeScale // 当前时间比例尺
+
+  private _timeScales: TimeScale[] = [] // 时间轴比例尺
+
+  private _maxTimeValue: number
+
+  constructor(domainRange: number[], coorRange: number[], originNumber: number) {
     super(domainRange, coorRange, false)
-    this.setTimeScale(originNumber)
+    this.ananlysisIsDaysInterval(originNumber)
+    this.resetTimeDomainRange()
+    this._maxTimeValue = this.domainRange.getMaxValue()
   }
 
-  public getCoordOfValue (v: number) {
+  public getCoordOfValue(v: number) {
     const minCoord = this.coordRange.getMinValue()
     const minTimeValue = this.domainRange.getMinValue()
-    return minCoord + (v - minTimeValue) / this.getUnitTimeValue() * this.unitWidth
+    return minCoord + ((v - minTimeValue) / this.getUnitTimeValue()) * this.unitWidth
   }
 
   /*
    1、坐标轴起点不一定是整点，需计算第一个刻度线(整点)距起点的时间差以及坐标差;
    2、通过四舍五入取刻度线前后半格都属于该整点
+   3、0点的时间戳和整天取模返回时区差
   */
-  public getValueOfCoord (coord: number) {
+  public getValueOfCoord(coord: number) {
     const unitTimeValue = this.getUnitTimeValue()
     const minTimeValue = this.domainRange.getMinValue()
-    const disTime = unitTimeValue - minTimeValue % unitTimeValue
-    const disCoord = disTime / unitTimeValue * this.unitWidth
+    const disTime = (this._maxTimeValue - minTimeValue) % this.timeUnitValue
+    const disCoord = (disTime / unitTimeValue) * this.unitWidth
     const interval = coord - this.coordRange.getMinValue() - disCoord
     return minTimeValue + disTime + Math.round(interval / this.unitWidth) * unitTimeValue
   }
 
-  public getUnitTimeValue (): number {
-    return TimeUnit[this.timeScaleType].value
+  public getUnitTimeValue(): number {
+    return this.timeUnitValue
   }
 
-  public setTimeScaleType (type: TimeScaleType) {
-    this.timeScaleType = type
+  public getCurrentTimeScale(): TimeScale {
+    return this._currentTimeScale
+  }
+
+  public setCurrentTimeScale(timeScale: TimeScale) {
+    this._currentTimeScale = timeScale
     return this
   }
 
-  public getAxisData (): TickData[] {
+  public getAxisData(): TickData[] {
     let minTimeValue = this.domainRange.getMinValue()
     let start = this.coordRange.getMinValue()
     const coordInterval = this.coordRange.getInterval()
     const steps = coordInterval / this.unitWidth
     const unitTimeValue = this.getUnitTimeValue()
-    const ticks:TickData[] = []
+    const ticks: TickData[] = []
     for (let i = 0; i <= steps; i++) {
       // 第一个刻度
       if (i === 0) {
         // 起点距离第一个刻度线相差的时间
-        const disTime = unitTimeValue - minTimeValue % unitTimeValue
-        const disCoord = disTime / unitTimeValue * this.unitWidth
+        const disTime = (this._maxTimeValue - minTimeValue) % this.timeUnitValue
+        const disCoord = (disTime / unitTimeValue) * this.unitWidth
         start += disCoord
         minTimeValue += disTime
       }
       const value = minTimeValue + i * unitTimeValue
-      if (this.isTimeInteger(value)) {
+      if (this.isShowTicks(value)) {
         ticks.push({ p: start + i * this.unitWidth, v: value })
       }
     }
     return ticks
   }
 
-  public scaleAroundTimestamp (timestamp: number, coeff: number) {
-    if (this._scaleCoeff * coeff > this._maxScaleCoeff
-      || this._scaleCoeff * coeff < this._minScaleCoeff) return
+  public scaleAroundTimestamp(timestamp: number, coeff: number) {
+    if (this._scaleCoeff * coeff > this._maxScaleCoeff || this._scaleCoeff * coeff < this._minScaleCoeff) return
     this.unitWidth /= coeff
     this._scaleCoeff *= coeff
     this.domainRange.scaleAroundPoint(timestamp, coeff)
+    this.updateTimeScale()
   }
 
-  private isTimeInteger (v: number): boolean {
-    const integerTime = TimeScaleStep[this.timeScaleType]
+  public setTimeScales(timeScales: TimeScale[]) {
+    this._timeScales = timeScales
+    return this
+  }
+
+  private updateTimeScale() {
+    let scaleIndex = Math.floor(this._scaleCoeff / 1.5)
+    scaleIndex = this._timeScales.length - scaleIndex - 1
+    if (scaleIndex >= 0 && scaleIndex < this._timeScales.length) {
+      this.setCurrentTimeScale(this._timeScales[scaleIndex])
+    }
+  }
+
+  private isShowTicks(v: number): boolean {
     const d = new Date(v)
+    const { type: timeScaleType, number: integerTime } = this._currentTimeScale
     const timeInfo = {
+      [TimeScaleType.Month]: d.getMonth(),
       [TimeScaleType.Day]: d.getDate(),
       [TimeScaleType.Hour]: d.getHours(),
       [TimeScaleType.Minute]: d.getMinutes(),
-      [TimeScaleType.Second]: d.getSeconds(),
     }
-    return timeInfo[this.timeScaleType] % integerTime === 0
+    // week
+    if (timeScaleType === TimeScaleType.Day) {
+      const isIntegerDay = timeInfo[TimeScaleType.Hour] === 0 && timeInfo[TimeScaleType.Minute] === 0
+      return integerTime === 7 ? d.getDay() === 0 && isIntegerDay : isIntegerDay
+    }
+    // month
+    if (timeScaleType === TimeScaleType.Month) {
+      return (
+        timeInfo[TimeScaleType.Month] % integerTime === 0 &&
+        timeInfo[TimeScaleType.Day] * TimeInterval.Day <= this.timeUnitValue
+      )
+    }
+    // hour
+    if (timeScaleType === TimeScaleType.Hour) {
+      return timeInfo[timeScaleType] % integerTime === 0 && timeInfo[TimeScaleType.Minute] === 0
+    }
+    return timeInfo[timeScaleType] % integerTime === 0
   }
 
-  private setTimeScale (originNumber: number) {
-    const timeInterval = this.domainRange.getInterval()
-    const days = Math.ceil(timeInterval / TimeUnit.Day.value) + 1
-    if (originNumber <= days) {
-      this.timeScaleType = TimeScaleType.Day
-      this.resetTimeDomainRange()
-      return
+  private ananlysisIsDaysInterval(originNumber: number) {
+    const days = getDaysBetween(this.domainRange.getMinValue(), this.domainRange.getMaxValue())
+    const weeks = Math.ceil(days / 7)
+    const threeDays = Math.ceil(days / 3)
+    if (originNumber <= weeks) {
+      this.setTimeScales(TimeScales.slice(0, 3))
+      this.timeUnitValue = TimeInterval.Day * 7
+    } else if (originNumber <= threeDays) {
+      this.setTimeScales(TimeScales.slice(1, 3))
+      this.timeUnitValue = TimeInterval.Day * 3
+    } else if (originNumber <= days) {
+      this.setTimeScales(TimeScales.slice(2, 4))
+      this.timeUnitValue = TimeInterval.Day
+    } else {
+      this.analysisIsHoursInterval(originNumber)
     }
-    const hours = Math.ceil(timeInterval / TimeUnit.Hour.value) + 1
-    if (originNumber <= hours) {
-      this.timeScaleType = TimeScaleType.Hour
-      this.resetTimeDomainRange()
-      return
-    }
-    const minutes = Math.ceil(timeInterval / TimeUnit.Minute.value) + 1
-    if (originNumber <= minutes) {
-      this.timeScaleType = TimeScaleType.Minute
-      this.resetTimeDomainRange()
-      return
-    }
-    const seconds = Math.ceil(timeInterval / TimeUnit.Second.value) + 1
-    if (originNumber <= seconds) {
-      this.timeScaleType = TimeScaleType.Second
-      this.resetTimeDomainRange()
+    this.setCurrentTimeScale(this._timeScales[this._timeScales.length - 1])
+  }
+
+  private analysisIsHoursInterval(originNumber: number) {
+    const hours = getHoursBetween(this.domainRange.getMinValue(), this.domainRange.getMaxValue())
+    const twelveHours = Math.ceil(hours / 12)
+    const sixHours = Math.ceil(hours / 6)
+    const fourHours = Math.ceil(hours / 4)
+    const twoHours = Math.ceil(hours / 2)
+    if (originNumber <= twelveHours) {
+      this.setTimeScales(TimeScales.slice(2, 4))
+      this.timeUnitValue = TimeInterval.Hour * 12
+    } else if (originNumber <= sixHours) {
+      this.setTimeScales(TimeScales.slice(3, 5))
+      this.timeUnitValue = TimeInterval.Hour * 6
+    } else if (originNumber <= fourHours) {
+      this.setTimeScales(TimeScales.slice(3, 5))
+      this.timeUnitValue = TimeInterval.Hour * 4
+    } else if (originNumber <= twoHours) {
+      this.setTimeScales(TimeScales.slice(3, 6))
+      this.timeUnitValue = TimeInterval.Hour * 2
+    } else if (originNumber <= hours) {
+      this.setTimeScales(TimeScales.slice(4, 6))
+      this.timeUnitValue = TimeInterval.Hour
+    } else {
+      this.analysisIsMinutesInterval(originNumber)
     }
   }
 
-  private resetTimeDomainRange () {
-    this.unitWidth = TimeUnit[this.timeScaleType].width
+  private analysisIsMinutesInterval(originNumber: number) {
+    const minutes = getMinutesBetween(this.domainRange.getMinValue(), this.domainRange.getMaxValue())
+    const thirtyMinutes = Math.ceil(minutes / 30)
+    const fifMinutes = Math.ceil(minutes / 15)
+    const fiveMinutes = Math.ceil(minutes / 5)
+    const threeMinutes = Math.ceil(minutes / 3)
+    if (originNumber <= thirtyMinutes) {
+      this.setTimeScales(TimeScales.slice(4, 6))
+      this.timeUnitValue = TimeInterval.Minute * 30
+    } else if (originNumber <= fifMinutes) {
+      this.setTimeScales(TimeScales.slice(5, 7))
+      this.timeUnitValue = TimeInterval.Minute * 15
+    } else if (originNumber <= fiveMinutes) {
+      this.setTimeScales(TimeScales.slice(5, 8))
+      this.timeUnitValue = TimeInterval.Minute * 5
+    } else if (originNumber <= threeMinutes) {
+      this.setTimeScales(TimeScales.slice(5, 8))
+      this.timeUnitValue = TimeInterval.Minute * 3
+    } else if (originNumber <= minutes) {
+      this.setTimeScales(TimeScales.slice(7))
+      this.timeUnitValue = TimeInterval.Minute
+    }
+  }
+
+  private resetTimeDomainRange() {
     const coordInterval = this.coordRange.getInterval()
     const unitCount = coordInterval / this.unitWidth
     const maxTimeValue = this.domainRange.getMaxValue()

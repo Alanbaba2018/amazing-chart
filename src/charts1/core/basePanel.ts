@@ -2,20 +2,20 @@ import EventHandle from './eventHandle'
 import IWidget from './widgets/iWidget'
 
 export default abstract class BasePanel extends EventHandle {
-  public widgets: IWidget[] = [];
+  public widgets: IWidget[] = []
 
-  private _isWaiting: boolean = false;
+  private _isWaiting: boolean = false
 
-  public getSeriesData () {
+  public getSeriesData() {
     const { seriesData = [] } = this.getConfig()
     return seriesData
   }
 
-  public getVisibleSeriesData<T> (): T {
+  public getVisibleSeriesData<T>(): T {
     return this.getAttr('visibleSeriesData') || this.getSeriesData()
   }
 
-  public addWidget (widget: IWidget) {
+  public addWidget(widget: IWidget) {
     this.setWidgetParent(widget)
     this.widgets.push(widget)
     widget.setWidgetBound()
@@ -23,7 +23,7 @@ export default abstract class BasePanel extends EventHandle {
     return this
   }
 
-  public addWidgets (widgets: IWidget[]) {
+  public addWidgets(widgets: IWidget[]) {
     widgets.forEach(widget => {
       this.setWidgetParent(widget)
       this.widgets.push(widget)
@@ -33,20 +33,25 @@ export default abstract class BasePanel extends EventHandle {
     return this
   }
 
-  public addElement (element: HTMLElement) {
+  public addElement(element: HTMLElement) {
     const container = this.getAttr('container')
     if (container && element) {
       container.appendChild(element)
     }
   }
 
-  public eachWidgets (callback: Function) {
+  public addElemens(elements: HTMLElement[]) {
+    const container = this.getAttr('container')
+    elements.forEach(element => container.appendChild(element))
+  }
+
+  public eachWidgets(callback: Function) {
     this.widgets.forEach(widget => {
       callback.call(this, widget)
     })
   }
 
-  public update () {
+  public update() {
     if (this._isWaiting) {
       return
     }
@@ -60,7 +65,7 @@ export default abstract class BasePanel extends EventHandle {
     })
   }
 
-  public removeWidget (widget: IWidget) {
+  public removeWidget(widget: IWidget) {
     for (let i = 0; i < this.widgets.length; i++) {
       if (this.widgets[i] === widget) {
         this.widgets.splice(i, 1)
@@ -71,11 +76,11 @@ export default abstract class BasePanel extends EventHandle {
     return this
   }
 
-  public abstract clearPanel (): void
+  public abstract clearPanel(): void
 
   public abstract setWidgetParent(widget: IWidget): void
 
-  protected sortWidgets () {
+  protected sortWidgets() {
     this.widgets.sort((widgetA: IWidget, widgetB: IWidget) => {
       const zIndexA = widgetA.getConfig().zIndex
       const zIndexB = widgetB.getConfig().zIndex

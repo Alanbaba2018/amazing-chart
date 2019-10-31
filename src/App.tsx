@@ -1,26 +1,20 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import './App.css';
-import Candlestick from './charts1/index';
+import Candlestick from './charts1/candlestick';
 import candlestickJson from './data.json';
 
 export default function App() {
-  const seriesData = candlestickJson.map((item: any) => {
-    const [time, open, high, low, close] = item;
+  const seriesData = candlestickJson.map((item: any, index: number) => {
     return {
-      time,
-      open: Number(open),
-      high: Number(high),
-      low: Number(low),
-      close: Number(close)
+      ...item,
+      time: 1569859200000 + index * 60 * 1000 * 30,
     }
   });
+  const ref = useRef();
   const props = {
     className: "candlestick-chart",
     seriesData: seriesData,
-    marginRight: 60,
-    marginLeft: 0,
-    marginTop: 0,
-    marginBottom: 30,
+    ref
   };
   return (
     <div className="App">

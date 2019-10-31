@@ -4,13 +4,13 @@ import { TickData } from '../../typeof/type';
 export default class PriceAxisRenderer extends IRenderer {
   public draw(ctx: CanvasRenderingContext2D, data: any) {
     // console.log('-----------------draw PriceAxisRenderer-------------');
-    const { bound: { width, height }, ticksData, textMargin = 0, tickWidth = 0, extendHeight } = data;
+    const { bound: { height }, ticksData, textMargin = 0, tickWidth = 0, extendHeight } = data;
     ctx.beginPath();
-    this.drawBorder(ctx, width, height, extendHeight);
+    this.drawBorder(ctx, height, extendHeight);
     this.drawTicks(ctx, ticksData, textMargin, tickWidth);
     ctx.stroke();
   }
-  public drawBorder(ctx: CanvasRenderingContext2D, width: number, height: number, extendHeight: number = 0) {
+  public drawBorder(ctx: CanvasRenderingContext2D, height: number, extendHeight: number = 0) {
     this.drawLine(ctx, 0, extendHeight, 0, -height);
   }
   public drawTicks(ctx: CanvasRenderingContext2D, ticksData: TickData[], textMargin: number, tickWidth: number) {

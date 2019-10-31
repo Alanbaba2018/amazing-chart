@@ -50,6 +50,7 @@ export default class Range {
   }
   public shift(step: number) {
     if (!isNumber(step)) return;
+    console.log(`max: ${this._max}, step: ${step}`);
     this._min += step;
     this._max += step;
   }

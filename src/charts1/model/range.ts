@@ -1,49 +1,49 @@
 import { isNumber } from '../util/type-check'
 
 export default class Range {
-  private _min: number = 0;
+  private _min: number = 0
 
-  private _max: number = 0;
+  private _max: number = 0
 
-  constructor (min: number, max: number) {
+  constructor(min: number, max: number) {
     this._min = min
     this._max = max
   }
 
-  public isInvalid () {
+  public isInvalid() {
     return !isNumber(this._min) || !isNumber(this._max)
   }
 
-  public getMinValue () {
+  public getMinValue() {
     return this._min
   }
 
-  public setMinValue (value: number) {
+  public setMinValue(value: number) {
     this._min = value
     return this
   }
 
-  public getMaxValue () {
+  public getMaxValue() {
     return this._max
   }
 
-  public setMaxValue (value: number) {
+  public setMaxValue(value: number) {
     this._max = value
     return this
   }
 
-  public getInterval () {
+  public getInterval() {
     return this._max - this._min
   }
 
-  public merge (range: Range) {
+  public merge(range: Range) {
     if (range.isInvalid) {
       return this
     }
     return new Range(Math.min(this._min, range.getMinValue()), Math.max(this._max, range.getMaxValue()))
   }
 
-  public scaleAroundCenter (coeff: number) {
+  public scaleAroundCenter(coeff: number) {
     if (!isNumber(coeff)) return
     const center = (this._min + this._max) * 0.5
     const halfInterval = (this._max - this._min) * 0.5
@@ -52,7 +52,7 @@ export default class Range {
     this._max = center + delta
   }
 
-  public scaleAroundPoint (p: number, coeff: number) {
+  public scaleAroundPoint(p: number, coeff: number) {
     if (!isNumber(p) || !isNumber(coeff) || !this.contain(p)) return
     const leftInterval = p - this.getMinValue()
     const rightInterval = this.getMaxValue() - p
@@ -60,19 +60,22 @@ export default class Range {
     this._max = p + rightInterval * coeff
   }
 
-  public shift (step: number) {
+  public shift(step: number) {
     if (!isNumber(step)) return
     this._min += step
     this._max += step
   }
 
-  public contains (range: Range, strict = true) {
+  public contains(range: Range, strict = true) {
     return strict
       ? this._min < range.getMinValue() && this._max > range.getMaxValue()
       : this._min <= range.getMinValue() && this._max >= range.getMaxValue()
   }
 
-  public contain (v: number): boolean {
+  public contain(v: number, strick = false): boolean {
+    if (strick) {
+      return v > this.getMinValue() && v < this.getMaxValue()
+    }
     return v >= this.getMinValue() && v <= this.getMaxValue()
   }
 }

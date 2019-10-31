@@ -1,10 +1,15 @@
 const fs = require('fs');
-let data = fs.readFileSync('./klines.json');
+let data = fs.readFileSync('./data.json');
 data = JSON.parse(data.toString());
-const _data = data.map((item, index) => {
-  return [1571626800000 + index * 60 * 60 * 1000].concat(item.slice(1));
+const _data = data.map(item => {
+  return {
+    open: item[1],
+    high: item[2],
+    low: item[3],
+    close: item[4]
+  }
 });
-fs.writeFile('./data.json', JSON.stringify(_data), (err) => {
+fs.writeFile('./src/data.json', JSON.stringify(_data), (err) => {
   if (!err) {
     console.log('write success!');
   }

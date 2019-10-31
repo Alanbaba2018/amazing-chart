@@ -1,4 +1,5 @@
 import Range from './range';
+import { TickData } from '../../charts/typeof/type';
 
 export default class Axis {
   public domainRange!: Range;
@@ -32,7 +33,7 @@ export default class Axis {
     const tickCounts = Math.ceil(halfRestWidth / this._displayUnitWidth) * 2;
     const startCoord = this.coordRange.getMinValue() + halfRestWidth % this._displayUnitWidth;
     const startValue = this.domainRange.getMinValue() + halfRestWidth % this._displayUnitWidth / this._displayUnitWidth * unitValue;
-    const ticks = [];
+    const ticks: TickData[] = [];
     for (let i = 0; i < tickCounts; i++) {
       ticks.push({ p: startCoord + i * this._displayUnitWidth, v: startValue + i * unitValue});
     }
