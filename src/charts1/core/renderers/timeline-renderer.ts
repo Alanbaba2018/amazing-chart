@@ -23,16 +23,13 @@ export default class TimelineRenderer extends IRenderer {
   public drawShadow = (ctx: CanvasRenderingContext2D, bounds: Bound[] = []) => {
     bounds.forEach(bound => {
       const { x, y, width, height } = bound
-      ctx.fillRect(x, -(y + height), width, height)
+      Canvas.fillRect(ctx, x, -(y + height), width, height)
     })
-    ctx.fill()
   }
 
   public drawTrendLine = (ctx: CanvasRenderingContext2D, points: Point[]) => {
     ctx.beginPath()
-    points.forEach((point: Point, i: number) => {
-      i === 0 ? ctx.moveTo(point.x, -point.y) : ctx.lineTo(point.x, -point.y)
-    })
+    Canvas.drawLines(ctx, points)
     ctx.stroke()
   }
 
@@ -40,7 +37,7 @@ export default class TimelineRenderer extends IRenderer {
     ctx.beginPath()
     tickMarks.forEach(tick => {
       Canvas.drawLine(ctx, tick.p, 0, tick.p, -tickWidth)
-      ctx.fillText(tick.label, tick.p, -tickWidth - textMargin)
+      Canvas.drawText(ctx, tick.label, tick.p, -tickWidth - textMargin)
     })
     ctx.stroke()
   }

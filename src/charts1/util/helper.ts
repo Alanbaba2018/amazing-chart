@@ -7,6 +7,7 @@ import {
   CommonObject,
   TimeScale,
   TimeInterval,
+  CandlestickItem,
 } from '../typeof/type'
 import { isNumber, isString } from './type-check'
 
@@ -56,6 +57,10 @@ export function setElementStyle(element: HTMLElement, styles: { [k: string]: any
 
 export function isZero(n: number): boolean {
   return Math.abs(n) < Zero
+}
+
+export function toFloat(v: number, decimals: number = 2): number {
+  return Number(v.toFixed(decimals))
 }
 
 export function geElementOffsetFromParent(e: MouseEvent): Point {
@@ -109,6 +114,10 @@ export function formatTime(time: any, famtter: string = 'YYYY-MM-DD hh:mm:ss') {
 
 export function getAxisDateLabel(timestamp: number, timeScale: TimeScale): string {
   const d = new Date(timestamp)
+  if (timeScale.type === TimeScaleType.Month) {
+    const formatter = d.getMonth() === 0 ? 'YYYY' : 'MM/DD'
+    return formatTime(timestamp, formatter)
+  }
   if (d.getHours() === 0) {
     const formatter = {
       [TimeScaleType.Month]: 'MM/DD',
@@ -160,7 +169,7 @@ export function getIntegerOrHalfDayTimes(start: number, end: number, integerTime
   const d = new Date(start)
   const offset =
     d.getHours() * TimeInterval.Hour + d.getMinutes() * TimeInterval.Minute + d.getSeconds() * TimeInterval.Second
-  let currentHour = offset === 0 ? start : start + offset
+  let currentHour = offset === 0 ? start : start + integerTime - offset
   const results: number[] = []
   while (currentHour <= end) {
     results.push(currentHour)
@@ -235,3 +244,55 @@ export function isBoundContain(bound: Bound, point: Point): boolean {
 export function getDevicePixelRatio(): number {
   return window.devicePixelRatio || 1
 }
+
+// ---------------Start format candlestick data------
+
+export function calculateMA(candleList: CandlestickItem[], index: number, period: number) {
+  const item = candleList[index]
+  if (index < period - 1) {
+    item[`MA${period}`] = NaN
+    return
+  }
+  const lastMA = candleList[index - 1][`MA${period}`]
+  if (isNaN(lastMA)) {
+    let sum = 0
+    for (let i = index; i > index - period; i--) {
+      sum += candleList[i].close
+    }
+    item[`MA${period}`] = Number((sum / period).toFixed(2))
+  } else {
+    item[`MA${period}`] = Number((lastMA - candleList[index - period].close / period + item.close / period).toFixed(2))
+  }
+}
+// calculate Exponential Moving Average(指数平均数指标)
+export function calculateEMA(candleList: CandlestickItem[], index: number, period: number) {
+  const coeff = 2.0 / (period + 1)
+  const item = candleList[index]
+  const { close } = item
+  if (index === 0) {
+    item[`EMA${period}`] = close
+  } else {
+    const yesterdayEMA = candleList[index - 1][`EMA${period}`]
+    item[`EMA${period}`] = Number((close * coeff + yesterdayEMA * (1 - coeff)).toFixed(2))
+  }
+}
+// calculate Moving Average Convergence Divergence – MACD
+export function calculateMACD(
+  candleList: CandlestickItem[],
+  index: number,
+  quickPeriod: number = 12,
+  slowPeriod: number = 26,
+  delay: number = 9,
+) {
+  const item = candleList[index]
+  calculateEMA(candleList, index, quickPeriod)
+  calculateEMA(candleList, index, slowPeriod)
+  item.DIFF = item[`EMA${quickPeriod}`] - item[`EMA${slowPeriod}`]
+  if (index === 0) {
+    item.DEA = 0
+  } else {
+    item.DEA = (2 * item.DIFF + (delay - 1) * candleList[index - 1].DEA) / (delay + 1)
+  }
+  item.MACD = (item.DIFF - item.DEA) * 2
+}
+// -------------End calculate cnadlestick indicator--------

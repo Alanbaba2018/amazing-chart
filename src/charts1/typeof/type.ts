@@ -27,6 +27,7 @@ export interface CandlestickItem {
   high: number
   low: number
   close: number
+  [k: string]: any
 }
 
 export interface TickData {
@@ -191,4 +192,24 @@ export const TimeScales = [
 export enum DrawMode {
   All = 'All',
   Scene = 'Scene',
+}
+
+export enum ViewType {
+  MACD = 'MACD',
+  EMA = 'EMA',
+  MA = 'MA',
+  SMA = 'SMA',
+  MOMENTUM = 'MOMENTUM',
+  ATR = 'ATR',
+  BOLL = 'BOLL',
+}
+export interface ExtendView {
+  type: ViewType
+  params: { [k: string]: any }
+  styles: CommonObject
+}
+
+export enum ColorMap {
+  White = '#ffffff',
+  Black = '#000000',
 }

@@ -1,9 +1,10 @@
 import IWidget from './iWidget'
 import CandlestickRenderer from '../renderers/candlestick-renderer'
-import { Point, CommonObject } from '../../typeof/type'
+import { Point, CommonObject, ExtendView, ViewType } from '../../typeof/type'
 import { setElementStyle, setCanvasContextStyle, formatTime, isZero } from '../../util/helper'
 import Canvas from '../canvas'
 import TimeAxis from '../../model/time-axis'
+import * as Indicator from '../indicator'
 
 export default class CandlestickWidget extends IWidget {
   public config = { zIndex: 1 }
@@ -24,41 +25,90 @@ export default class CandlestickWidget extends IWidget {
     ctx.save()
     this.setCanvasTransform(ctx)
     setCanvasContextStyle(ctx, config)
-    this.renderer.draw(this.getContext(), this.getVisibleBars(), config)
+    this.renderer.draw(ctx, this.getVisibleBars(), config)
+    this.renderExtendViews(ctx)
     ctx.restore()
   }
 
   public setWidgetBound() {
     const parent = this.getParent()
-    const {
-      xAxis,
-      yAxis,
-      marginLeft,
-      marginRight,
-      marginBottom,
-      marginTop,
-      width,
-      height,
-      timeline,
-    } = parent.getConfig()
+    const { xAxis, yAxis, margin, width, height, timeline } = parent.getConfig()
     this.setBound({
-      x: marginLeft,
-      y: height - xAxis.height - timeline.height - marginBottom,
-      width: width - yAxis.width - marginLeft - marginRight,
-      height: height - xAxis.height - timeline.height - marginBottom - marginTop,
+      x: margin.left,
+      y: height - xAxis.height - timeline.height - margin.bottom,
+      width: width - yAxis.width - margin.left - margin.right,
+      height: height - xAxis.height - timeline.height - margin.bottom - margin.top,
     })
   }
 
-  public getVisibleBars() {
+  private renderExtendViews(ctx: CanvasRenderingContext2D) {
+    const extendViews: ExtendView[] = this.getParent().getAttr('extends') || []
+    extendViews.forEach(view => {
+      if (view.type === ViewType.EMA) {
+        const { params, styles } = view
+        const lines = this.getEMALines(params.periods)
+        this.renderer.drawMultiLines(ctx, lines, styles.colors)
+      } else if (view.type === ViewType.BOLL) {
+        const { styles } = view
+        const lines = this.getBollLines()
+        this.renderer.drawMultiLines(ctx, lines, styles.colors)
+      }
+    })
+  }
+
+  private getBollLines(): Point[][] {
+    const parent = this.getParent()
+    const xAxis = parent.getXAxis()
+    const yAxis = parent.getYAxis()
+    const visibleBars = this.getVisibleBars()
+    const lineMap: { [k: string]: Point[] } = {
+      up: [],
+      md: [],
+      dn: [],
+    }
+    for (let i = 0; i < visibleBars.length; i++) {
+      const item = visibleBars[i]
+      const x = xAxis.getCoordOfValue(item.time)
+      const upY = yAxis.getCoordOfValue(item[Indicator.BOLL.upKey])
+      const mdY = yAxis.getCoordOfValue(item[Indicator.BOLL.mdKey])
+      const dnY = yAxis.getCoordOfValue(item[Indicator.BOLL.dnKey])
+      lineMap.up.push({ x, y: -upY })
+      lineMap.md.push({ x, y: -mdY })
+      lineMap.dn.push({ x, y: -dnY })
+    }
+    return [lineMap.up, lineMap.md, lineMap.dn]
+  }
+
+  private getEMALines(periods: number[]): Point[][] {
+    const parent = this.getParent()
+    const xAxis = parent.getXAxis()
+    const yAxis = parent.getYAxis()
+    const visibleBars = this.getVisibleBars()
+    const lines: Point[][] = []
+    for (let i = 0; i < visibleBars.length; i++) {
+      const item = visibleBars[i]
+      const x = xAxis.getCoordOfValue(item.time)
+      for (let j = 0; j < periods.length; j++) {
+        const y = yAxis.getCoordOfValue(item[`EMA${periods[j]}`])
+        if (i === 0) {
+          lines[j] = []
+        }
+        lines[j].push({ x, y: -y })
+      }
+    }
+    return lines
+  }
+
+  private getVisibleBars() {
     const parent = this.getParent()
     return parent.getVisibleBars()
   }
 
   // transfer absolute point to draw-axis point
   private transformPointToView(point: Point): Point {
-    const { marginLeft } = this.getParent().getConfig()
+    const margin = this.getParent().getAttr('margin')
     return {
-      x: point.x - marginLeft,
+      x: point.x - margin.left,
       y: this.bound.y - point.y,
     }
   }

@@ -6,7 +6,7 @@ export default class Canvas {
     ctx.lineTo(x2, y2)
   }
 
-  static drawLines(ctx: CanvasRenderingContext2D, ...points: Point[]) {
+  static drawLines(ctx: CanvasRenderingContext2D, points: Point[]) {
     for (let i = 0; i < points.length; i++) {
       const p: Point = points[i]
       i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)
@@ -41,10 +41,17 @@ export default class Canvas {
   }
 
   static drawText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, color?: string) {
-    ctx.save()
     if (color) {
       ctx.fillStyle = color
     }
     ctx.fillText(text, x, y)
+  }
+
+  static strokeRect(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number) {
+    ctx.strokeRect(x, y, width, height)
+  }
+
+  static fillRect(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number) {
+    ctx.fillRect(x, y, width, height)
   }
 }

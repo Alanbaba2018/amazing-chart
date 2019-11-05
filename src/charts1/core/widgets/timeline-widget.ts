@@ -80,11 +80,11 @@ export default class TimelineWidget extends IWidget {
   public setWidgetBound() {
     const parent = this.getParent()
     this.setAttrs(parent.getAttr('timeline'))
-    const { marginLeft, marginRight, marginBottom, width, height } = parent.getConfig()
+    const { margin, width, height } = parent.getConfig()
     this.setBound({
-      x: marginLeft,
-      y: height - marginBottom,
-      width: width - marginLeft - marginRight,
+      x: margin.left,
+      y: height - margin.bottom,
+      width: width - margin.left - margin.right,
       height: this.getAttr('height'),
     })
   }
@@ -95,7 +95,7 @@ export default class TimelineWidget extends IWidget {
     const offsetHeight = this.getAttr('timeAxisHeight')
     return seriesData.map((item: CandlestickItem) => {
       const { time, high } = item
-      return { x: this._xAxis.getCoordOfValue(time), y: this._yAxis.getCoordOfValue(high) + offsetHeight }
+      return { x: this._xAxis.getCoordOfValue(time), y: -(this._yAxis.getCoordOfValue(high) + offsetHeight) }
     })
   }
 
@@ -188,10 +188,10 @@ export default class TimelineWidget extends IWidget {
 
   // transfer absolute point to draw-axis point
   private transformPointToView(point: Point): Point {
-    const { marginLeft } = this.getParent().getConfig()
+    const margin = this.getParent().getAttr('margin')
     // remove bottom axis height
     return {
-      x: point.x - marginLeft,
+      x: point.x - margin.left,
       y: this.bound.y - point.y,
     }
   }

@@ -20,22 +20,12 @@ export default class CandlestickGridWidget extends IWidget {
 
   public setWidgetBound() {
     const parent = this.getParent()
-    const {
-      xAxis,
-      yAxis,
-      marginLeft,
-      marginRight,
-      marginBottom,
-      marginTop,
-      width,
-      height,
-      timeline,
-    } = parent.getConfig()
+    const { xAxis, yAxis, margin, width, height, timeline } = parent.getConfig()
     this.setBound({
-      x: marginLeft,
-      y: height - xAxis.height - timeline.height - marginBottom,
-      width: width - yAxis.width - marginLeft - marginRight,
-      height: height - xAxis.height - timeline.height - marginBottom - marginTop,
+      x: margin.left,
+      y: height - xAxis.height - timeline.height - margin.bottom,
+      width: width - yAxis.width - margin.left - margin.right,
+      height: height - xAxis.height - timeline.height - margin.bottom - margin.top,
     })
   }
 

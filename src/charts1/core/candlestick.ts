@@ -18,6 +18,7 @@ import {
   Trend,
   CommonKeys,
   RegisterEvents,
+  ExtendView,
 } from '../typeof/type'
 import {
   createCanvasElement,
@@ -27,6 +28,7 @@ import {
   getDevicePixelRatio,
 } from '../util/helper'
 import CandlestickOptions from './options'
+import * as Indicator from './indicator'
 
 export default class Candlestick extends BasePanel {
   public config = { ...CandlestickOptions }
@@ -233,10 +235,10 @@ export default class Candlestick extends BasePanel {
   }
 
   public setAxis() {
-    const { xAxis, yAxis, marginLeft, marginRight, marginBottom, marginTop, width, height, timeline } = this.getConfig()
+    const { xAxis, yAxis, margin, width, height, timeline } = this.getConfig()
     const [viewWidth, viewHeight] = [
-      width - yAxis.width - marginLeft - marginRight,
-      height - xAxis.height - timeline.height - marginTop - marginBottom,
+      width - yAxis.width - margin.left - margin.right,
+      height - xAxis.height - timeline.height - margin.top - margin.bottom,
     ]
     const xExtent = this.getVisibleTimeExtent()
     const visibleSeriesData = this.getVisibleSeriesData<CandlestickItem[]>()
@@ -345,7 +347,11 @@ export default class Candlestick extends BasePanel {
     const timeAxis = this.getXAxis() as TimeAxis
     const fullTimeExtent = this.getTimeExtent()
     const shiftedMinTime = timeAxis.domainRange.getMinValue() + shiftTime
-    if (shiftedMinTime <= fullTimeExtent[1]) {
+    const shiftedMaxTime = timeAxis.domainRange.getMaxValue() + shiftTime
+    if (
+      shiftedMinTime <= fullTimeExtent[1] &&
+      shiftedMaxTime <= fullTimeExtent[1] + timeAxis.domainRange.getInterval() / 2
+    ) {
       const offset = Math.max(fullTimeExtent[0], shiftedMinTime) - shiftedMinTime
       timeAxis.domainRange.shift(shiftTime + offset)
       this.updateTimeExtent()
@@ -377,13 +383,24 @@ export default class Candlestick extends BasePanel {
       .setMaxValue(newCenter + halfInterval * scaleCoeff)
   }
 
+  public calculateExtendIndicators() {
+    const seriesData = this.getSeriesData()
+    const extendViews: ExtendView[] = this.getAttr('extends')
+    if (extendViews && extendViews.length > 0) {
+      extendViews.forEach(view => {
+        Indicator[view.type] && Indicator[view.type].calculate(seriesData, view.params)
+      })
+    }
+  }
+
   private initEvents() {
     this.on(`seriesData${CommonKeys.Change}`, () => {
       // transfer date string to timestamp number
       const seriesData = this.getSeriesData()
-      seriesData.forEach((item: CandlestickItem) => {
+      seriesData.forEach(item => {
         item.time = getTimestamp(item.time)
       })
+      this.calculateExtendIndicators()
       this.setAxis()
     })
     const canvas = this.getHitCanvas()

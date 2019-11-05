@@ -45,7 +45,7 @@ export default class TimeAxisRenderer extends IRenderer {
       const dateLabel = getAxisDateLabel(tick.v as number, timeScale)
       if (dateLabel) {
         Canvas.drawLine(ctx, tick.p, y, tick.p, y - tickWidth)
-        ctx.fillText(dateLabel, tick.p, y - tickWidth - textMargin)
+        Canvas.drawText(ctx, dateLabel, tick.p, y - tickWidth - textMargin)
       }
     })
     ctx.stroke()

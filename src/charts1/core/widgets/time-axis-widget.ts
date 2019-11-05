@@ -43,11 +43,11 @@ export default class TimeAxisWidget extends IWidget {
 
   public setWidgetBound() {
     const parent = this.getParent()
-    const { xAxis, yAxis, marginLeft, marginRight, marginBottom, width, height, timeline } = parent.getConfig()
+    const { xAxis, yAxis, margin, width, height, timeline } = parent.getConfig()
     this.setBound({
-      x: marginLeft,
-      y: height - timeline.height - marginBottom,
-      width: width - yAxis.width - marginLeft - marginRight,
+      x: margin.left,
+      y: height - timeline.height - margin.bottom,
+      width: width - yAxis.width - margin.left - margin.right,
       height: xAxis.height,
     })
   }

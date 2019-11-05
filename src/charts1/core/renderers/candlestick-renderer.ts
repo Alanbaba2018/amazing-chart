@@ -1,6 +1,6 @@
 import IRenderer from './iRenderer'
 import Canvas from '../canvas'
-import { Point, Bound, CandlestickBar, Trend, CommonObject, TextBaseLine, TextAlign } from '../../typeof/type'
+import { Point, Bound, CandlestickBar, Trend, CommonObject, TextBaseLine, TextAlign, ColorMap } from '../../typeof/type'
 
 interface TextLabel {
   point: Point
@@ -25,7 +25,6 @@ export default class CandlestickRenderer extends IRenderer {
   public draw(ctx: CanvasRenderingContext2D, data: CandlestickBar[], config: CommonObject) {
     // console.log('-----------------draw CandlestickRenderer----------------');
     this.drawCandlestickBars(ctx, data, config)
-    ctx.restore()
   }
 
   public drawCrossLine = (ctx: CanvasRenderingContext2D, focusPoint: Point, bound: Bound) => {
@@ -43,34 +42,29 @@ export default class CandlestickRenderer extends IRenderer {
     const textMargin = 3
     const rectHeight = 20
     const { xLabel, yLabel } = labels
-    // ctx.fillStyle = labels.bgColor
     let textWidth = Math.ceil(ctx.measureText(yLabel.text).width) + (tickWidth + textMargin) * 2
     // draw marker rect
-    const xLabelBound = { x: yLabel.point.x, y: -yLabel.point.y - rectHeight / 2, width: textWidth, height: rectHeight }
-    Canvas.drawBackground(ctx, labels.bgColor, xLabelBound)
-    // ctx.fillRect(yLabel.point.x, -yLabel.point.y - rectHeight / 2, textWidth, rectHeight)
-    textWidth = Math.ceil(ctx.measureText(xLabel.text).width) + (tickWidth + textMargin) * 2
-    const yLabelBound = { x: xLabel.point.x - textWidth / 2, y: 0, width: textWidth, height: rectHeight + textMargin }
+    const yLabelBound = { x: yLabel.point.x, y: -yLabel.point.y - rectHeight / 2, width: textWidth, height: rectHeight }
     Canvas.drawBackground(ctx, labels.bgColor, yLabelBound)
-    // ctx.fillRect(xLabel.point.x - textWidth / 2, 0, textWidth, rectHeight + textMargin)
-    // ctx.fill()
+    textWidth = Math.ceil(ctx.measureText(xLabel.text).width) + (tickWidth + textMargin) * 2
+    const xLabelBound = { x: xLabel.point.x - textWidth / 2, y: 0, width: textWidth, height: rectHeight + textMargin }
+    Canvas.drawBackground(ctx, labels.bgColor, xLabelBound)
     // draw Y label
     ctx.textAlign = TextAlign.Left
     ctx.textBaseline = TextBaseLine.Middle
     ctx.fillStyle = yLabel.color
-    ctx.fillText(yLabel.text, yLabel.point.x + tickWidth + textMargin, -yLabel.point.y)
+    Canvas.drawText(ctx, yLabel.text, yLabel.point.x + tickWidth + textMargin, -yLabel.point.y)
     // draw X label
     ctx.textAlign = TextAlign.Center
     ctx.textBaseline = TextBaseLine.Top
     ctx.fillStyle = xLabel.color
-    ctx.fillText(xLabel.text, xLabel.point.x, -xLabel.point.y + tickWidth + textMargin)
+    Canvas.drawText(ctx, xLabel.text, xLabel.point.x, -xLabel.point.y + tickWidth + textMargin)
 
     // 绘制marker刻度线
     ctx.setLineDash([])
     ctx.beginPath()
     Canvas.drawLine(ctx, yLabel.point.x, -yLabel.point.y, yLabel.point.x + tickWidth, -yLabel.point.y)
     Canvas.drawLine(ctx, xLabel.point.x, -xLabel.point.y, xLabel.point.x, -xLabel.point.y + tickWidth)
-    ctx.closePath()
     ctx.stroke()
   }
 
@@ -87,8 +81,8 @@ export default class CandlestickRenderer extends IRenderer {
         if (width < 2) {
           Canvas.drawLine(ctx, bar.x, -bar.lowY, bar.x, -bar.highY)
         } else {
-          ctx.strokeRect(x, y, width, height)
-          ctx.fillRect(x, y, width, height)
+          Canvas.strokeRect(ctx, x, y, width, height)
+          Canvas.fillRect(ctx, x, y, width, height)
           Canvas.drawLine(ctx, bar.x, -bar.highY, bar.x, y)
           Canvas.drawLine(ctx, bar.x, -bar.lowY, bar.x, y + height)
         }
@@ -106,12 +100,21 @@ export default class CandlestickRenderer extends IRenderer {
         if (width < 2) {
           Canvas.drawLine(ctx, bar.x, -bar.lowY, bar.x, -bar.highY)
         } else {
-          ctx.strokeRect(x, y, width, height)
+          Canvas.strokeRect(ctx, x, y, width, height)
           Canvas.drawLine(ctx, bar.x, -bar.lowY, bar.x, -bar.closeY)
           Canvas.drawLine(ctx, bar.x, -bar.highY, bar.x, y)
         }
       }
     })
     ctx.stroke()
+  }
+
+  public drawMultiLines = (ctx: CanvasRenderingContext2D, lines: Point[][], colors: string[] = []) => {
+    lines.forEach((line, index) => {
+      ctx.strokeStyle = colors[index] || ColorMap.White
+      ctx.beginPath()
+      Canvas.drawLines(ctx, line)
+      ctx.stroke()
+    })
   }
 }

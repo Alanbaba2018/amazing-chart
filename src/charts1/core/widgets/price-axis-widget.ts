@@ -35,12 +35,12 @@ export default class PriceAxisWidget extends IWidget {
 
   public setWidgetBound() {
     const parent = this.getParent()
-    const { xAxis, yAxis, marginRight, marginBottom, marginTop, width, height, timeline } = parent.getConfig()
+    const { xAxis, yAxis, margin, width, height, timeline } = parent.getConfig()
     this.setBound({
-      x: width - yAxis.width - marginRight,
-      y: height - xAxis.height - timeline.height - marginBottom,
+      x: width - yAxis.width - margin.right,
+      y: height - xAxis.height - timeline.height - margin.bottom,
       width: yAxis.width,
-      height: height - xAxis.height - timeline.height - marginBottom - marginTop,
+      height: height - xAxis.height - timeline.height - margin.bottom - margin.top,
     })
   }
 
