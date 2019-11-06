@@ -195,6 +195,7 @@ export enum DrawMode {
 }
 
 export enum ViewType {
+  CANDLE = 'CANDLE',
   MACD = 'MACD',
   EMA = 'EMA',
   MA = 'MA',
@@ -209,7 +210,89 @@ export interface ExtendView {
   styles: CommonObject
 }
 
+export const AddViewTypes = [ViewType.MACD]
+
 export enum ColorMap {
   White = '#ffffff',
   Black = '#000000',
+  Gray = '#2d2d2d',
+}
+
+interface Margin {
+  left: number
+  right: number
+  top: number
+  bottom: number
+}
+interface RectStyles {
+  fillStyle: string
+  strokeStyle: string
+  lineWidth: number
+}
+interface AxisConfig {
+  textBaseline: TextBaseLine
+  textAlign: TextAlign
+  strokeStyle?: string
+  fillStyle?: string
+  tickColor: string
+  tickWidth: number
+  textMargin: number
+  scaleRatio?: number
+}
+
+interface xAxisConfig extends AxisConfig {
+  height: number
+}
+interface yAxisConfig extends AxisConfig {
+  width: number
+}
+interface TimelineConfig extends xAxisConfig {
+  timeAxisHeight: number
+  borderColor: string
+  shadowColor: string
+  sliderColor: string
+  trenLineColor: string
+  tickMarkColor: string
+}
+export interface CandlestickConfig {
+  margin?: Margin
+  background?: string
+  candlestick: {
+    barWeight: number
+    [Trend.Up]: RectStyles
+    [Trend.Down]: RectStyles
+    grid: {
+      strokeStyle: string
+      lineWidth: number
+    }
+  }
+  crossHair: {
+    show: boolean
+    lineColor: string
+    labelBackground: string
+    xLabelColor: string
+    yLabelColor: string
+  }
+  xAxis: xAxisConfig
+  yAxis: yAxisConfig
+  timeline: TimelineConfig
+  extends: ExtendView[]
+}
+
+interface TextLabel {
+  point: Point
+  text: string
+  color: string
+}
+export interface AxisLabels {
+  xLabel: TextLabel
+  yLabel: TextLabel
+  bgColor: string
+}
+
+export const GapWidgetHeight: number = 20
+
+export enum PanelType {
+  BASE = 'BASE',
+  EXT = 'EXT',
 }

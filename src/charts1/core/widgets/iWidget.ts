@@ -1,37 +1,47 @@
 import EventHandle from '../eventHandle'
+import BasePanel from '../basePanel'
 import Candlestick from '../candlestick'
 import IRenderer from '../renderers/iRenderer'
 import { Bound, Point } from '../../typeof/type'
 import { getDevicePixelRatio } from '../../util/helper'
+import Axis from '../../model/axis'
 
 export default abstract class IWidget extends EventHandle {
   public config = { zIndex: 0 }
 
   public bound: Bound = { x: 0, y: 0, width: 0, height: 0 }
 
-  private _parent!: Candlestick
+  private _parent: Candlestick | BasePanel
+
+  public get xAxis(): Axis {
+    return this.getRoot().getXAxis()
+  }
 
   public remove() {
     const parent = this.getParent()
-    if (parent) {
+    if (parent instanceof BasePanel) {
       parent.removeWidget(this)
+    } else {
+      parent.removePanel(this)
     }
   }
 
-  public setParent(parent: Candlestick) {
+  public setParent(parent: Candlestick | BasePanel) {
     if (this._parent) {
       throw new Error('Current Node had parent, Pls do not set parent repeatly!')
     }
     this._parent = parent
   }
 
-  public getParent(): Candlestick {
+  public getParent(): Candlestick | BasePanel {
     return this._parent
   }
 
-  public getContext(): CanvasRenderingContext2D {
-    const parent = this.getParent()
-    return parent.getContext()
+  public getRoot(): Candlestick {
+    if (this._parent instanceof BasePanel) {
+      return this._parent.getParent()
+    }
+    return this._parent
   }
 
   public getBound(): Bound {
@@ -57,9 +67,15 @@ export default abstract class IWidget extends EventHandle {
     )
   }
 
+  public updateViewBound(bound: { [k in keyof Bound]: number }) {
+    this.setBound({ ...this.bound, ...bound })
+  }
+
+  public initialData() {}
+
   public abstract renderer: IRenderer
 
-  public abstract setWidgetBound(): void
+  public abstract setViewBound(bound?: Bound): void
 
   public abstract render(): void
 }

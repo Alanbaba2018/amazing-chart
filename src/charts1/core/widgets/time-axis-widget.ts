@@ -18,14 +18,14 @@ export default class TimeAxisWidget extends IWidget {
   }
 
   public render() {
-    const parent = this.getParent()
+    const parent = this.getRoot()
     const { xAxis: xAxisConfig, yAxis, background } = parent.getConfig()
     const ctx: CanvasRenderingContext2D = parent.getAxisContext()
     ctx.save()
     this.setCanvasTransform(ctx)
     Canvas.drawBackground(ctx, background, { ...this.bound, x: 0, y: -this.bound.height })
     const { tickWidth, textMargin } = xAxisConfig
-    const xAxis = this.getParent().getXAxis() as TimeAxis
+    const xAxis = this.getRoot().getXAxis() as TimeAxis
     const ticksData = this.getTicksData()
     const timeScale = xAxis.getCurrentTimeScale()
     setCanvasContextStyle(ctx, { ...xAxisConfig, strokeStyle: xAxisConfig.tickColor })
@@ -41,8 +41,8 @@ export default class TimeAxisWidget extends IWidget {
     ctx.restore()
   }
 
-  public setWidgetBound() {
-    const parent = this.getParent()
+  public setViewBound() {
+    const parent = this.getRoot()
     const { xAxis, yAxis, margin, width, height, timeline } = parent.getConfig()
     this.setBound({
       x: margin.left,
@@ -53,7 +53,7 @@ export default class TimeAxisWidget extends IWidget {
   }
 
   public getTicksData(): TickData[] {
-    const parent = this.getParent()
+    const parent = this.getRoot()
     if (parent) {
       const axis = parent.getXAxis()
       const axisData = axis.getAxisData()
@@ -63,7 +63,7 @@ export default class TimeAxisWidget extends IWidget {
   }
 
   private onmouseout() {
-    const parent = this.getParent()
+    const parent = this.getRoot()
     const _hitCtx = parent.getHitContext()
     Canvas.clearRect(_hitCtx)
     this.clearDragEvent()
@@ -73,7 +73,7 @@ export default class TimeAxisWidget extends IWidget {
     let { x: startX } = evt.point
     this.on('mousemove.mousedown', (e: any) => {
       const { x: moveX } = e.point
-      this.getParent().shiftTimeLine(startX - moveX)
+      this.getRoot().shiftTimeLine(startX - moveX)
       startX = moveX
     })
     this.on('mouseup.mousedown', this.clearDragEvent)
@@ -86,7 +86,7 @@ export default class TimeAxisWidget extends IWidget {
 
   private mousemove() {
     if (!this.getAttr('isMouseover')) {
-      setElementStyle(this.getParent().getHitCanvas(), { cursor: 'ew-resize' })
+      setElementStyle(this.getRoot().getHitCanvas(), { cursor: 'ew-resize' })
     }
   }
 }

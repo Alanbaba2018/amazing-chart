@@ -36,7 +36,7 @@ export default class TimelineWidget extends IWidget {
 
   public render() {
     this.setAxis()
-    const parent = this.getParent()
+    const parent = this.getRoot()
     const {
       borderColor,
       shadowColor,
@@ -77,7 +77,7 @@ export default class TimelineWidget extends IWidget {
     shadowCtx.restore()
   }
 
-  public setWidgetBound() {
+  public setViewBound() {
     const parent = this.getParent()
     this.setAttrs(parent.getAttr('timeline'))
     const { margin, width, height } = parent.getConfig()
@@ -145,7 +145,7 @@ export default class TimelineWidget extends IWidget {
   }
 
   private getShadowBounds(): Bound[] {
-    const parent = this.getParent()
+    const parent = this.getRoot()
     const currentTimeRange = parent.getXAxis().domainRange
     const timeAxisHeight = this.getAttr('timeAxisHeight')
     const bounds: Bound[] = []
@@ -167,7 +167,7 @@ export default class TimelineWidget extends IWidget {
   }
 
   private getSliderBound(): Bound {
-    const parent = this.getParent()
+    const parent = this.getRoot()
     const currentTimeRange = parent.getXAxis().domainRange
     const x1 = this._xAxis.getCoordOfValue(currentTimeRange.getMinValue())
     const x2 = this._xAxis.getCoordOfValue(currentTimeRange.getMaxValue())
@@ -225,7 +225,7 @@ export default class TimelineWidget extends IWidget {
   }
 
   private onmouseout() {
-    const parent = this.getParent()
+    const parent = this.getRoot()
     const _hitCtx = parent.getHitContext()
     Canvas.clearRect(_hitCtx)
     this.clearDragEvent()
@@ -233,7 +233,7 @@ export default class TimelineWidget extends IWidget {
 
   private onmousedown(evt: any) {
     let { x: startX } = evt.point
-    const parent = this.getParent()
+    const parent = this.getRoot()
     // if click shadow bounds
     if (this.isOverShadowBounds(evt.point)) {
       const clickTimestamp = this._xAxis.getValueOfCoord(startX)
@@ -258,9 +258,9 @@ export default class TimelineWidget extends IWidget {
 
   private mousemove(evt: any) {
     if (this.isOverSliderBound(evt.point)) {
-      setElementStyle(this.getParent().getHitCanvas(), { cursor: 'pointer' })
+      setElementStyle(this.getRoot().getHitCanvas(), { cursor: 'pointer' })
     } else {
-      setElementStyle(this.getParent().getHitCanvas(), { cursor: 'default' })
+      setElementStyle(this.getRoot().getHitCanvas(), { cursor: 'default' })
     }
   }
 }

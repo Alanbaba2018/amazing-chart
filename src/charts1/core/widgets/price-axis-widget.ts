@@ -3,6 +3,7 @@ import PriceAxisRenderer from '../renderers/price-axis-renderer'
 import { TickData, CommonObject } from '../../typeof/type'
 import { setElementStyle, setCanvasContextStyle, isZero } from '../../util/helper'
 import Canvas from '../canvas'
+import BasePanel from '../basePanel'
 
 export default class PriceAxisWidget extends IWidget {
   public config = { zIndex: 1000 }
@@ -16,7 +17,7 @@ export default class PriceAxisWidget extends IWidget {
   }
 
   public render() {
-    const parent = this.getParent()
+    const parent = this.getRoot()
     const { yAxis: config, background } = parent.getConfig()
     const ctx: CanvasRenderingContext2D = parent.getAxisContext()
     ctx.save()
@@ -33,34 +34,36 @@ export default class PriceAxisWidget extends IWidget {
     ctx.restore()
   }
 
-  public setWidgetBound() {
+  public setViewBound() {
+    const root = this.getRoot()
     const parent = this.getParent()
-    const { xAxis, yAxis, margin, width, height, timeline } = parent.getConfig()
+    const bound = (parent as BasePanel).getBound()
+    const { yAxis } = root.getAttr('yAxis')
     this.setBound({
-      x: width - yAxis.width - margin.right,
-      y: height - xAxis.height - timeline.height - margin.bottom,
+      x: bound.x + bound.width - yAxis.width,
+      y: bound.y,
       width: yAxis.width,
-      height: height - xAxis.height - timeline.height - margin.bottom - margin.top,
+      height: bound.height,
     })
   }
 
   public getTicksData(): TickData[] {
-    const parent = this.getParent()
-    const axis = parent.getYAxis()
+    const parent = this.getParent() as BasePanel
+    const axis = parent.yAxis
     const axisData = axis.getAxisData()
     return axisData
   }
 
   private onmousemove() {
     if (!this.getAttr('isMouseover')) {
-      setElementStyle(this.getParent().getHitCanvas(), { cursor: 'ns-resize' })
+      setElementStyle(this.getRoot().getHitCanvas(), { cursor: 'ns-resize' })
     }
   }
 
   private onmousewheel(data: CommonObject) {
     const { deltaY } = data.originEvent
-    const parent = this.getParent()
-    const yAxis = parent.getYAxis()
+    const parent = this.getParent() as BasePanel
+    const { yAxis } = parent
     const oldScaleCoeff = yAxis.getCurrentScaleCoeff()
     const { scaleRatio } = parent.getAttr('yAxis')
     // deltaY > 0 ? 1.05 : 0.95;

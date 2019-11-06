@@ -1,11 +1,10 @@
 /* eslint-disable max-lines*/
+import BaseView from './baseView'
 import BasePanel from './basePanel'
 import IWidget from './widgets/iWidget'
-import CandlestickWidget from './widgets/candlestick-widget'
-import CandlestickGridWidget from './widgets/candlestick-grid-widget'
-import PriceAxisWidget from './widgets/price-axis-widget'
 import TimeAxisWidget from './widgets/time-axis-widget'
 import TimelineWidget from './widgets/timeline-widget'
+import GapWidget from './widgets/ext/gap-widget'
 import Axis from '../model/axis'
 import TimeAxis from '../model/time-axis'
 import Canvas from './canvas'
@@ -14,11 +13,11 @@ import {
   CandlestickItem,
   Point,
   Bound,
-  CandlestickBar,
-  Trend,
   CommonKeys,
   RegisterEvents,
   ExtendView,
+  PanelType,
+  ViewType,
 } from '../typeof/type'
 import {
   createCanvasElement,
@@ -30,12 +29,12 @@ import {
 import CandlestickOptions from './options'
 import * as Indicator from './indicator'
 
-export default class Candlestick extends BasePanel {
+export default class Candlestick extends BaseView {
   public config = { ...CandlestickOptions }
 
   protected _canvas: HTMLCanvasElement // main scene canvas
 
-  protected _cacheCanvas: HTMLCanvasElement
+  protected _hitCanvas: HTMLCanvasElement
 
   protected _bgCanvas: HTMLCanvasElement // background canvas
 
@@ -53,9 +52,37 @@ export default class Candlestick extends BasePanel {
 
   protected _staticCtx: CanvasRenderingContext2D
 
+  protected _frameCanvas: HTMLCanvasElement // ui frame canvas
+
+  protected _frameCtx: CanvasRenderingContext2D
+
   protected _xAxis: Axis
 
-  protected _yAxis: Axis
+  protected _baseWidgets: IWidget[] = []
+
+  protected _extPanels: BasePanel[] = []
+
+  protected _gapWidgets: GapWidget[] = []
+
+  private _visibleViewHeight: number = 0
+
+  private _baseViewWeight: number = 1
+
+  public get visibleViewHeight(): number {
+    return this._visibleViewHeight
+  }
+
+  public get baseViewWeight(): number {
+    return this._baseViewWeight
+  }
+
+  public get gapWidgets(): GapWidget[] {
+    return this._gapWidgets
+  }
+
+  public get extPanels(): BasePanel[] {
+    return this._extPanels
+  }
 
   constructor(options: PanelOptions) {
     super()
@@ -63,6 +90,10 @@ export default class Candlestick extends BasePanel {
     this.initContainer()
     this.initWidgets()
     this.initEvents()
+  }
+
+  public getCanvasCollection(): HTMLCanvasElement[] {
+    return [this._canvas, this._hitCanvas, this._bgCanvas, this._axisCanvas, this._staticCanvas, this._frameCanvas]
   }
 
   public getCanvas(): HTMLCanvasElement {
@@ -75,11 +106,11 @@ export default class Candlestick extends BasePanel {
   }
 
   public getHitCanvas(): HTMLCanvasElement {
-    return this._cacheCanvas
+    return this._hitCanvas
   }
 
   public setHitCanvas(canvas: HTMLCanvasElement) {
-    this._cacheCanvas = canvas
+    this._hitCanvas = canvas
     return this
   }
 
@@ -110,6 +141,15 @@ export default class Candlestick extends BasePanel {
     return this._staticCanvas
   }
 
+  public getFrameCanvas(): HTMLCanvasElement {
+    return this._frameCanvas
+  }
+
+  public setFrameCanvas(canvas: HTMLCanvasElement) {
+    this._frameCanvas = canvas
+    return this
+  }
+
   public getContext(): CanvasRenderingContext2D {
     if (!this._ctx) {
       this.setContext(this._canvas.getContext('2d') as CanvasRenderingContext2D)
@@ -124,12 +164,12 @@ export default class Candlestick extends BasePanel {
 
   public getHitContext(): CanvasRenderingContext2D {
     if (!this._hitCtx) {
-      this.setCacheContext(this._cacheCanvas.getContext('2d') as CanvasRenderingContext2D)
+      this.setHitContext(this._hitCanvas.getContext('2d') as CanvasRenderingContext2D)
     }
     return this._hitCtx
   }
 
-  public setCacheContext(ctx: CanvasRenderingContext2D) {
+  public setHitContext(ctx: CanvasRenderingContext2D) {
     this._hitCtx = ctx
     return this
   }
@@ -170,12 +210,20 @@ export default class Candlestick extends BasePanel {
     return this
   }
 
-  public getXAxis(): Axis {
-    return this._xAxis
+  public getFrameContext(): CanvasRenderingContext2D {
+    if (!this._frameCtx) {
+      this.setFrameContext(this._frameCanvas.getContext('2d') as CanvasRenderingContext2D)
+    }
+    return this._frameCtx
   }
 
-  public getYAxis(): Axis {
-    return this._yAxis
+  public setFrameContext(ctx: CanvasRenderingContext2D) {
+    this._frameCtx = ctx
+    return this
+  }
+
+  public getXAxis(): Axis {
+    return this._xAxis
   }
 
   public resize() {
@@ -183,7 +231,7 @@ export default class Candlestick extends BasePanel {
     if (!container) return
     this.setAttrs({ width: container.clientWidth, height: container.clientHeight })
     this.updateContainerSize()
-    this.eachWidgets((widget: IWidget) => widget.setWidgetBound())
+    // this.eachPanels((widget: IWidget) => widget.setViewBound())
     const background = this.getAttr('background')
     background && this.setPanelBackground(background)
     this.update()
@@ -193,9 +241,11 @@ export default class Candlestick extends BasePanel {
     const ctx = this.getContext()
     const axisCtx = this.getAxisContext()
     const staticCtx = this.getStaticContext()
+    const frameCtx = this.getFrameContext()
     Canvas.clearRect(ctx, bound)
     Canvas.clearRect(axisCtx, bound)
     Canvas.clearRect(staticCtx)
+    Canvas.clearRect(frameCtx)
   }
 
   public setWidgetParent(widget: IWidget) {
@@ -214,7 +264,7 @@ export default class Candlestick extends BasePanel {
   }
 
   public getYExtent(): number[] {
-    const visibleData = this.getVisibleSeriesData<CandlestickItem[]>()
+    const visibleData = this.getVisibleSeriesData()
     const values: number[] = visibleData.reduce((acc: number[], cur: CandlestickItem) => {
       acc.push(...[cur.high, cur.low])
       return acc
@@ -223,7 +273,7 @@ export default class Candlestick extends BasePanel {
   }
 
   public getVisibleTimeExtent(): number[] {
-    const visibleData = this.getVisibleSeriesData<CandlestickItem[]>()
+    const visibleData = this.getVisibleSeriesData()
     const values: number[] = visibleData.map((rowData: CandlestickItem) => rowData.time)
     return [Math.min(...values), Math.max(...values)]
   }
@@ -235,17 +285,12 @@ export default class Candlestick extends BasePanel {
   }
 
   public setAxis() {
-    const { xAxis, yAxis, margin, width, height, timeline } = this.getConfig()
-    const [viewWidth, viewHeight] = [
-      width - yAxis.width - margin.left - margin.right,
-      height - xAxis.height - timeline.height - margin.top - margin.bottom,
-    ]
+    const { yAxis, margin, width } = this.getConfig()
+    const viewWidth = width - yAxis.width - margin.left - margin.right
     const xExtent = this.getVisibleTimeExtent()
-    const visibleSeriesData = this.getVisibleSeriesData<CandlestickItem[]>()
+    const visibleSeriesData = this.getVisibleSeriesData()
     this._xAxis = new TimeAxis(xExtent, [0, viewWidth], visibleSeriesData.length)
     this.setVisibleSeriesData()
-    const yExtent = this.getYExtent()
-    this._yAxis = new Axis(yExtent, [0, viewHeight])
   }
 
   public setVisibleSeriesData() {
@@ -254,57 +299,24 @@ export default class Candlestick extends BasePanel {
     this.setAttr('visibleSeriesData', visibleData)
   }
 
-  public getPositonByValue(xValue: number, yValue: number): Point {
-    const x = this._xAxis.getCoordOfValue(xValue)
-    const y = this._yAxis.getCoordOfValue(yValue)
-    return { x, y }
-  }
-
-  public getBarPosition(bar: CandlestickItem) {
-    const { time, low, high, open, close } = bar
-    const x = this._xAxis.getCoordOfValue(time)
-    const lowY = this._yAxis.getCoordOfValue(low)
-    const highY = this._yAxis.getCoordOfValue(high)
-    const openY = this._yAxis.getCoordOfValue(open)
-    const closeY = this._yAxis.getCoordOfValue(close)
-    return { x, lowY, highY, openY, closeY }
-  }
-
-  public getVisibleBars(): CandlestickBar[] {
-    const visibleData = this.getVisibleSeriesData<CandlestickItem[]>()
-    return visibleData.map((item: CandlestickItem) => {
-      const { x, lowY, highY, openY, closeY } = this.getBarPosition(item)
-      return {
-        ...item,
-        x,
-        y: Math.min(openY, closeY),
-        width: this._xAxis.unitWidth * this.getAttr('barWeight') || 0.3,
-        height: Math.abs(closeY - openY),
-        openY,
-        closeY,
-        highY,
-        lowY,
-        type: item.close - item.open > 0 ? Trend.Up : Trend.Down,
-      }
-    })
-  }
-
   public initContainer() {
     const container = this.getAttr('container')
     if (!container) return
     this.setAttrs({ width: container.clientWidth, height: container.clientHeight })
     const { width = 0, height = 0 } = this.getConfig()
     const style = { position: 'absolute', left: 0, top: 0, width: `${width}px`, height: `${height}px` }
-    this.setHitCanvas(createCanvasElement(width, height, { className: 'hit', style: { ...style, zIndex: 1 } }))
+    this.setHitCanvas(createCanvasElement(width, height, { className: 'hit', style: { ...style, zIndex: 10 } }))
+    this.setFrameCanvas(createCanvasElement(width, height, { className: 'frame', style: { ...style, zIndex: 9 } }))
     this.setAxisCanvas(createCanvasElement(width, height, { className: 'axis', style: { ...style, zIndex: 0 } }))
-    this.setCanvas(createCanvasElement(width, height, { className: 'scene', style: { ...style, zIndex: -1 } }))
-    this.setStaticCanvas(createCanvasElement(width, height, { className: 'static', style: { ...style, zIndex: -2 } }))
-    this.setBgCanvas(createCanvasElement(width, height, { className: 'bg', style: { ...style, zIndex: -3 } }))
+    this.setCanvas(createCanvasElement(width, height, { className: 'scene', style: { ...style, zIndex: -10 } }))
+    this.setStaticCanvas(createCanvasElement(width, height, { className: 'static', style: { ...style, zIndex: -20 } }))
+    this.setBgCanvas(createCanvasElement(width, height, { className: 'bg', style: { ...style, zIndex: -30 } }))
     this.addElemens([
       this.getBgCanvas(),
       this.getStaticCanvas(),
       this.getCanvas(),
       this.getAxisCanvas(),
+      this.getFrameCanvas(),
       this.getHitCanvas(),
     ])
     const { background = 'transparent' } = this.getConfig()
@@ -312,24 +324,34 @@ export default class Candlestick extends BasePanel {
   }
 
   public initWidgets() {
-    const candlewWidget = new CandlestickWidget()
-    const candlestickGridWidget = new CandlestickGridWidget()
-    const priceAxisWidget = new PriceAxisWidget()
+    const { margin, timeline, xAxis, height } = this.getConfig()
+    this._visibleViewHeight = height - margin.top - margin.bottom - timeline.height - xAxis.height
+    const basePanel = new BasePanel(PanelType.BASE, ViewType.CANDLE)
     const timeAxisWidget = new TimeAxisWidget()
     const timelineWidget = new TimelineWidget()
-    this.addWidgets([candlewWidget, candlestickGridWidget, priceAxisWidget, timeAxisWidget, timelineWidget])
+    this.initExtWidgets()
+    this.addPanels([basePanel, timeAxisWidget, timelineWidget, ...this._gapWidgets, ...this._extPanels])
+    this.initPanelBound()
+  }
+
+  public initExtWidgets() {
+    const extendViews: ExtendView[] = this.getAttr('extends')
+    let frontPanel: BasePanel | null = null
+    extendViews.forEach(view => {
+      const extPanel = new BasePanel(PanelType.EXT, view.type)
+      const gapWidget = new GapWidget(frontPanel, extPanel)
+      this._extPanels.push(extPanel)
+      this._gapWidgets.push(gapWidget)
+      frontPanel = extPanel
+    })
   }
 
   public updateContainerSize() {
-    const hitCanvas = this.getHitCanvas()
-    const sceneCanvas = this.getCanvas()
-    const bgCanvas = this.getBgCanvas()
-    const axisCanvas = this.getAxisCanvas()
-    const staticCanvas = this.getStaticCanvas()
+    const canvasCollection = this.getCanvasCollection()
     const { width, height } = this.getConfig()
     this.setAttrs({ width, height })
     const styles = { width: `${width}px`, height: `${height}px` }
-    ;[hitCanvas, sceneCanvas, bgCanvas, axisCanvas, staticCanvas].forEach((canvas: HTMLCanvasElement) => {
+    canvasCollection.forEach((canvas: HTMLCanvasElement) => {
       canvas.width = width * getDevicePixelRatio()
       canvas.height = height * getDevicePixelRatio()
       setElementStyle(canvas, styles)
@@ -374,13 +396,11 @@ export default class Candlestick extends BasePanel {
   }
 
   public updateYExtend() {
-    const yExtent = this.getYExtent()
-    const newCenter = (yExtent[0] + yExtent[1]) / 2
-    const halfInterval = (yExtent[1] - yExtent[0]) / 2
-    const scaleCoeff = this._yAxis.getScaleCoeff()
-    this._yAxis.domainRange
-      .setMinValue(newCenter - halfInterval * scaleCoeff)
-      .setMaxValue(newCenter + halfInterval * scaleCoeff)
+    this.eachPanels(panel => {
+      if (panel instanceof BasePanel) {
+        panel.updateYExtend()
+      }
+    })
   }
 
   public calculateExtendIndicators() {
@@ -402,6 +422,7 @@ export default class Candlestick extends BasePanel {
       })
       this.calculateExtendIndicators()
       this.setAxis()
+      this.initPanelYAxis()
     })
     const canvas = this.getHitCanvas()
     canvas &&
@@ -429,18 +450,25 @@ export default class Candlestick extends BasePanel {
   }
 
   private onmousedown(evt: any) {
-    this.eachWidgets((widget: IWidget) => {
+    const doHandle = (widget: IWidget) => {
       const isContain = widget.contain(evt.point)
       if (isContain) {
         widget.fire('mousedown', evt)
       }
       widget.setAttr('isMousedown', isContain)
+    }
+    this.eachPanels(panel => {
+      if (panel instanceof BasePanel) {
+        panel.eachWidgets(widget => doHandle(widget))
+      } else {
+        doHandle(panel)
+      }
     })
   }
 
   private onmousemove(evt: any) {
     let isMoveToWidget: boolean = false
-    this.eachWidgets((widget: IWidget) => {
+    const doHandle = (widget: IWidget) => {
       const isMouseover = widget.getAttr('isMouseover')
       if (widget.contain(evt.point)) {
         isMoveToWidget = true
@@ -453,6 +481,13 @@ export default class Candlestick extends BasePanel {
         widget.fire('mouseout', evt)
         widget.setAttr('isMouseover', false)
       }
+    }
+    this.eachPanels(panel => {
+      if (panel instanceof BasePanel) {
+        panel.eachWidgets(widget => doHandle(widget))
+      } else {
+        doHandle(panel)
+      }
     })
     if (!isMoveToWidget) {
       setElementStyle(this.getHitCanvas(), { cursor: 'default' })
@@ -460,26 +495,47 @@ export default class Candlestick extends BasePanel {
   }
 
   private onmouseup(evt: any) {
-    this.eachWidgets((widget: IWidget) => {
+    const doHandle = (widget: IWidget) => {
       if (widget.contain(evt.point)) {
         widget.fire('mouseup', evt)
+      }
+    }
+    this.eachPanels(panel => {
+      if (panel instanceof BasePanel) {
+        panel.eachWidgets(widget => doHandle(widget))
+      } else {
+        doHandle(panel)
       }
     })
   }
 
   private onmouseout() {
-    this.eachWidgets((widget: IWidget) => {
+    const doHandle = (widget: IWidget) => {
       if (widget.getAttr('isMouseover')) {
         widget.setAttr('isMouseover', false)
         widget.fire('mouseout')
+      }
+    }
+    this.eachPanels(panel => {
+      if (panel instanceof BasePanel) {
+        panel.eachWidgets(widget => doHandle(widget))
+      } else {
+        doHandle(panel)
       }
     })
   }
 
   private onmousewheel(evt: any) {
-    this.eachWidgets((widget: IWidget) => {
+    const doHandle = (widget: IWidget) => {
       if (widget.contain(evt.point)) {
         widget.fire('mousewheel', evt)
+      }
+    }
+    this.eachPanels(panel => {
+      if (panel instanceof BasePanel) {
+        panel.eachWidgets(widget => doHandle(widget))
+      } else {
+        doHandle(panel)
       }
     })
   }

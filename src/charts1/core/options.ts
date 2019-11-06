@@ -1,4 +1,4 @@
-import { Trend, TextBaseLine, TextAlign, ViewType } from '../typeof/type'
+import { Trend, TextBaseLine, TextAlign, ViewType, ColorMap } from '../typeof/type'
 
 const config = {
   margin: {
@@ -7,16 +7,14 @@ const config = {
     top: 0,
     bottom: 0,
   },
-  background: '#000000',
-  showCrossLine: true,
-  barWeight: 0.3,
+  background: ColorMap.Black,
   xAxis: {
     height: 40,
     textBaseline: TextBaseLine.Bottom,
     textAlign: TextAlign.Center,
     strokeStyle: '#242424',
     fillStyle: '#f0f6f9',
-    tickColor: '#ffffff',
+    tickColor: ColorMap.White,
     tickWidth: 5,
     textMargin: 5,
     scaleRatio: 0.08,
@@ -27,22 +25,20 @@ const config = {
     textAlign: TextAlign.Left,
     strokeStyle: '#242424',
     fillStyle: '#f0f6f9',
+    tickColor: ColorMap.White,
     tickWidth: 5,
     textMargin: 5,
     scaleRatio: 0.04,
   },
-  grid: {
-    strokeStyle: '#242424',
-    lineWidth: 1,
-  },
-  crossLine: {
-    strokeStyle: '#ffffff',
-    fillStyle: '#ffffff',
-    background: '#2d2d2d',
-    xLabelColor: '#ffffff',
-    yLabelColor: '#ffffff',
+  crossHair: {
+    show: true,
+    lineColor: ColorMap.White,
+    labelBackground: ColorMap.Gray,
+    xLabelColor: ColorMap.White,
+    yLabelColor: ColorMap.White,
   },
   candlestick: {
+    barWeight: 0.3,
     [Trend.Up]: {
       fillStyle: '#940505',
       strokeStyle: '#c60606',
@@ -51,6 +47,10 @@ const config = {
     [Trend.Down]: {
       fillStyle: '#00c582',
       strokeStyle: '#00c582',
+      lineWidth: 1,
+    },
+    grid: {
+      strokeStyle: ColorMap.Gray,
       lineWidth: 1,
     },
   },
@@ -62,9 +62,9 @@ const config = {
     borderColor: '#474747',
     shadowColor: 'rgba(0, 0, 0, 0.8)',
     sliderColor: 'rgba(54, 61, 82, 0.6)',
-    trenLineColor: '#ffffff',
-    tickColor: '#ffffff',
-    tickMarkColor: '#ffffff',
+    trenLineColor: ColorMap.White,
+    tickColor: ColorMap.White,
+    tickMarkColor: ColorMap.White,
     tickWidth: 5,
     textMargin: 5,
   },
