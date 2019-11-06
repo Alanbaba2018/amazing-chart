@@ -411,6 +411,7 @@ export default class Candlestick extends BaseView {
         Indicator[view.type] && Indicator[view.type].calculate(seriesData, view.params)
       })
     }
+    console.log(seriesData)
   }
 
   private initEvents() {

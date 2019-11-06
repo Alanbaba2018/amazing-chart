@@ -39,8 +39,9 @@ export default class GapWidget extends IWidget {
   }
 
   public setViewBound() {
-    const parent = this.getRoot()
-    const { margin, width } = parent.getConfig()
+    const root = this.getRoot()
+    const { margin, width } = root.getConfig()
+    const { extPanels } = root
     if (this._frontPanel) {
       const frontPanelBound = this._frontPanel.getBound()
       this.setBound({
@@ -50,9 +51,10 @@ export default class GapWidget extends IWidget {
         height: GapWidgetHeight,
       })
     } else {
+      const weight = 1 / (extPanels.length + 1)
       this.setBound({
         x: margin.left,
-        y: margin.top + parent.visibleViewHeight * parent.baseViewWeight + GapWidgetHeight,
+        y: margin.top + root.visibleViewHeight *weight + GapWidgetHeight,
         width: width - margin.left - margin.right,
         height: GapWidgetHeight,
       })

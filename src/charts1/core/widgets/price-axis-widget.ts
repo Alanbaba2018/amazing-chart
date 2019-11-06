@@ -38,7 +38,7 @@ export default class PriceAxisWidget extends IWidget {
     const root = this.getRoot()
     const parent = this.getParent()
     const bound = (parent as BasePanel).getBound()
-    const { yAxis } = root.getAttr('yAxis')
+    const yAxis = root.getAttr('yAxis')
     this.setBound({
       x: bound.x + bound.width - yAxis.width,
       y: bound.y,
@@ -63,9 +63,10 @@ export default class PriceAxisWidget extends IWidget {
   private onmousewheel(data: CommonObject) {
     const { deltaY } = data.originEvent
     const parent = this.getParent() as BasePanel
+    const root = this.getRoot()
     const { yAxis } = parent
     const oldScaleCoeff = yAxis.getCurrentScaleCoeff()
-    const { scaleRatio } = parent.getAttr('yAxis')
+    const { scaleRatio } = root.getAttr('yAxis')
     // deltaY > 0 ? 1.05 : 0.95;
     // zoomIn and zoomOut should be reciprocal relationship
     const coeff = deltaY > 0 ? 1 + scaleRatio : 1 / (1 + scaleRatio)

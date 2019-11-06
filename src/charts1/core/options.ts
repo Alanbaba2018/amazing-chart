@@ -1,4 +1,6 @@
-import { Trend, TextBaseLine, TextAlign, ViewType, ColorMap } from '../typeof/type'
+// import { Trend, TextBaseLine, TextAlign, ViewType, ColorMap } from '../typeof/type'
+import { Trend, TextBaseLine, TextAlign, ColorMap } from '../typeof/type'
+
 
 const config = {
   margin: {
@@ -9,7 +11,7 @@ const config = {
   },
   background: ColorMap.Black,
   xAxis: {
-    height: 40,
+    height: 80,
     textBaseline: TextBaseLine.Bottom,
     textAlign: TextAlign.Center,
     strokeStyle: '#242424',
@@ -115,16 +117,16 @@ const config = {
     //     periods: [14, 50],
     //   },
     // },
-    {
-      type: ViewType.BOLL,
-      params: {
-        period: 20,
-        standardDeviation: 2,
-      },
-      styles: {
-        colors: ['#596a83', '#b2b2b2', '#596a83'],
-      },
-    },
+    // {
+    //   type: ViewType.BOLL,
+    //   params: {
+    //     period: 20,
+    //     standardDeviation: 2,
+    //   },
+    //   styles: {
+    //     colors: ['#596a83', '#b2b2b2', '#596a83'],
+    //   },
+    // },
   ],
 }
 

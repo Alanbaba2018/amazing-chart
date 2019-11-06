@@ -98,7 +98,7 @@ export default class BasePanel extends EventHandle {
     return this
   }
 
-  public setPanelBound() {
+  public setViewBound() {
     const parent = this.getParent()
     const { margin, width } = parent.getConfig()
     const { visibleViewHeight, gapWidgets } = parent
@@ -107,10 +107,11 @@ export default class BasePanel extends EventHandle {
     const height = visibleViewHeight * this._weight
     this.setBound({
       x: margin.left,
-      y: margin.top + height * (index + 1) + GapWidgetHeight * index,
+      y: margin.top + height * (index + 2) + GapWidgetHeight * (index + 1),
       width: width - margin.left - margin.right,
       height,
     })
+    this.updateWidgetsBound()
   }
 
   public updateViewBound(bound: { [k in keyof Bound]: number }) {
@@ -122,16 +123,9 @@ export default class BasePanel extends EventHandle {
   }
 
   public update() {
-    if (this._isWaiting) {
-      return
-    }
-    this._isWaiting = true
-    requestAnimationFrame(() => {
-      this.clearPanel()
-      this.widgets.forEach(widget => {
-        widget.render()
-      })
-      this._isWaiting = false
+    this.clearPanel()
+    this.widgets.forEach(widget => {
+      widget.render()
     })
   }
 
@@ -159,9 +153,11 @@ export default class BasePanel extends EventHandle {
     const ctx = this._parent.getContext()
     const axisCtx = this._parent.getAxisContext()
     const frameCtx = this._parent.getFrameContext()
-    Canvas.clearRect(ctx, this._bound)
-    Canvas.clearRect(axisCtx, this._bound)
-    Canvas.clearRect(frameCtx, this._bound)
+    const {x, y, width, height} = this._bound
+    const clearBound = {x, y: y - height, width, height}
+    Canvas.clearRect(ctx,clearBound)
+    Canvas.clearRect(axisCtx, clearBound)
+    Canvas.clearRect(frameCtx, clearBound)
   }
 
   private _initWidgets() {

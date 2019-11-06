@@ -64,9 +64,7 @@ export default abstract class BaseView extends EventHandle {
 
   public initPanelBound() {
     this.eachPanels(panel => {
-      if (panel instanceof BasePanel) {
-        panel.setPanelBound()
-      }
+      panel.setViewBound()
     })
   }
 

@@ -23,7 +23,7 @@ export default class TimeAxisWidget extends IWidget {
     const ctx: CanvasRenderingContext2D = parent.getAxisContext()
     ctx.save()
     this.setCanvasTransform(ctx)
-    Canvas.drawBackground(ctx, background, { ...this.bound, x: 0, y: -this.bound.height })
+    // Canvas.drawBackground(ctx, background, { ...this.bound, x: 0, y: -this.bound.height })
     const { tickWidth, textMargin } = xAxisConfig
     const xAxis = this.getRoot().getXAxis() as TimeAxis
     const ticksData = this.getTicksData()
