@@ -1,6 +1,6 @@
 import IWidget from './iWidget'
 import TimelineRenderer from '../renderers/timeline-renderer'
-import { CandlestickItem, Bound, Point, TimeInterval } from '../../typeof/type'
+import { CandlestickItem, Bound, Point, TimeInterval, DrawMode } from '../../typeof/type'
 import {
   setElementStyle,
   setCanvasContextStyle,
@@ -34,7 +34,7 @@ export default class TimelineWidget extends IWidget {
     this.initEvents()
   }
 
-  public render() {
+  public render(drawMode: DrawMode) {
     this.setAxis()
     const parent = this.getRoot()
     const {
@@ -54,16 +54,18 @@ export default class TimelineWidget extends IWidget {
     staticCtx.save()
     shadowCtx.save()
     this.setCanvasTransform(staticCtx)
-    setCanvasContextStyle(staticCtx, { strokeStyle: borderColor })
-    // draw border line
-    this.renderer.draw(staticCtx, { bound: this.bound, timeAxisHeight })
-    const points = this.getTrendPoints()
-    setCanvasContextStyle(staticCtx, { strokeStyle: trenLineColor })
-    this.renderer.drawTrendLine(staticCtx, points)
-    // draw timeline tickmarks
-    setCanvasContextStyle(staticCtx, { strokeStyle: tickColor, fillStyle: tickMarkColor, textBaseline, textAlign })
-    const tickMarks = this.getTimelineTickMark()
-    this.renderer.drawTicks(staticCtx, tickMarks, textMargin, tickWidth)
+    if (drawMode === DrawMode.All) {
+      setCanvasContextStyle(staticCtx, { strokeStyle: borderColor })
+      // draw border line
+      this.renderer.draw(staticCtx, { bound: this.bound, timeAxisHeight })
+      const points = this.getTrendPoints()
+      setCanvasContextStyle(staticCtx, { strokeStyle: trenLineColor })
+      this.renderer.drawTrendLine(staticCtx, points)
+      // draw timeline tickmarks
+      setCanvasContextStyle(staticCtx, { strokeStyle: tickColor, fillStyle: tickMarkColor, textBaseline, textAlign })
+      const tickMarks = this.getTimelineTickMark()
+      this.renderer.drawTicks(staticCtx, tickMarks, textMargin, tickWidth)
+    }
     // draw no-current extent time bounds
     this.setCanvasTransform(shadowCtx)
     setCanvasContextStyle(shadowCtx, { fillStyle: shadowColor })
@@ -184,16 +186,6 @@ export default class TimelineWidget extends IWidget {
     const yValues: number[] = seriesData.map((rowData: CandlestickItem) => rowData.high)
     const yExtent = [Math.min(...yValues), Math.max(...yValues)]
     return { xExtent, yExtent }
-  }
-
-  // transfer absolute point to draw-axis point
-  private transformPointToView(point: Point): Point {
-    const margin = this.getParent().getAttr('margin')
-    // remove bottom axis height
-    return {
-      x: point.x - margin.left,
-      y: this.bound.y - point.y,
-    }
   }
 
   // is mouseover in shadow

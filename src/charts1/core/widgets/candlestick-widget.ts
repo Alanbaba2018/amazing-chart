@@ -1,13 +1,11 @@
 import BaseChartWidget from './base-chart-widget'
 import CandlestickRenderer from '../renderers/candlestick-renderer'
-import { Point, ExtendView, ViewType, TickData, CandlestickItem, CandlestickBar, Trend } from '../../typeof/type'
+import { Point, ExtendView, ViewType, CandlestickItem, CandlestickBar, Trend } from '../../typeof/type'
 import { setCanvasContextStyle } from '../../util/helper'
 import * as Indicator from '../indicator'
 import BasePanel from '../basePanel'
 
 export default class CandlestickWidget extends BaseChartWidget {
-  public config = { zIndex: 1 }
-
   public renderer = new CandlestickRenderer()
 
   public get parent(): BasePanel {
@@ -15,21 +13,22 @@ export default class CandlestickWidget extends BaseChartWidget {
   }
 
   public render() {
-    const parent = this.getRoot()
-    const config = parent.getAttr('candlestick')
-    const ctx: CanvasRenderingContext2D = parent.getContext()
-    ctx.save()
-    this.setCanvasTransform(ctx)
-    setCanvasContextStyle(ctx, config.grid)
+    const root = this.getRoot()
+    const config = root.getAttr('candlestick')
+    const sceneCtx: CanvasRenderingContext2D = root.getContext()
+    const ctxs = [sceneCtx]
+    this.initialCtxs(ctxs)
+    this.createClipBound(sceneCtx)
+    setCanvasContextStyle(sceneCtx, config.grid)
     const { xData, yData } = this.getXYTicksData()
-    this.renderer.drawGrid(ctx, this.bound, xData, yData)
-    this.renderer.draw(ctx, this.getVisibleBars(), config)
-    this.renderExtendViews(ctx)
-    ctx.restore()
+    this.renderer.drawGrid(sceneCtx, this.bound, xData, yData)
+    this.renderer.draw(sceneCtx, this.getVisibleBars(), config)
+    this.renderExtendViews(sceneCtx)
+    this.restoreCtxs(ctxs)
   }
 
   private renderExtendViews(ctx: CanvasRenderingContext2D) {
-    const extendViews: ExtendView[] = this.getParent().getAttr('extends') || []
+    const extendViews: ExtendView[] = this.getRoot().getAttr('extends') || []
     extendViews.forEach(view => {
       if (view.type === ViewType.EMA) {
         const { params, styles } = view
@@ -88,17 +87,6 @@ export default class CandlestickWidget extends BaseChartWidget {
     return lines
   }
 
-  private getXYTicksData() {
-    const root = this.getRoot()
-    const parent = this.getParent() as BasePanel
-    const xAxisData = root.getXAxis().getAxisData()
-    const yAxisData = parent.yAxis.getAxisData()
-    return {
-      xData: xAxisData.map((tickData: TickData) => tickData.p),
-      yData: yAxisData.map((tickData: TickData) => tickData.p),
-    }
-  }
-
   private getBarPosition(bar: CandlestickItem) {
     const { time, low, high, open, close } = bar
     const x = this.xAxis.getCoordOfValue(time)
@@ -112,13 +100,14 @@ export default class CandlestickWidget extends BaseChartWidget {
   private getVisibleBars(): CandlestickBar[] {
     const root = this.getRoot()
     const visibleData = this.parent.getVisibleSeriesData()
+    const { barWeight = 0.3 } = root.getAttr('candlestick')
     return visibleData.map((item: CandlestickItem) => {
       const { x, lowY, highY, openY, closeY } = this.getBarPosition(item)
       return {
         ...item,
         x,
         y: Math.min(openY, closeY),
-        width: this.xAxis.unitWidth * root.getAttr('candlestick').barWeight || 0.3,
+        width: this.xAxis.unitWidth * barWeight,
         height: Math.abs(closeY - openY),
         openY,
         closeY,

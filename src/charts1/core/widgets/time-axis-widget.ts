@@ -1,6 +1,6 @@
 import IWidget from './iWidget'
 import TimeAxisRenderer from '../renderers/time-axis-renderer'
-import { TickData } from '../../typeof/type'
+import { TickData, DrawMode } from '../../typeof/type'
 import { setElementStyle, setCanvasContextStyle } from '../../util/helper'
 import TimeAxis from '../../model/time-axis'
 import Canvas from '../canvas'
@@ -17,28 +17,34 @@ export default class TimeAxisWidget extends IWidget {
     this.on('mousedown', this.onmousedown.bind(this))
   }
 
-  public render() {
+  public render(drawMode: DrawMode) {
     const parent = this.getRoot()
-    const { xAxis: xAxisConfig, yAxis, background } = parent.getConfig()
-    const ctx: CanvasRenderingContext2D = parent.getAxisContext()
-    ctx.save()
-    this.setCanvasTransform(ctx)
-    // Canvas.drawBackground(ctx, background, { ...this.bound, x: 0, y: -this.bound.height })
+    const { xAxis: xAxisConfig, yAxis } = parent.getConfig()
+    const axisCtx: CanvasRenderingContext2D = parent.getAxisContext()
+    const frameCtx: CanvasRenderingContext2D = parent.getFrameContext()
+    this.initialCtxs([axisCtx, frameCtx])
+    this.createClipBound(axisCtx)
+    // Canvas.drawBackground(axisCtx, background, { ...this.bound, x: 0, y: -this.bound.height })
     const { tickWidth, textMargin } = xAxisConfig
     const xAxis = this.getRoot().getXAxis() as TimeAxis
     const ticksData = this.getTicksData()
     const timeScale = xAxis.getCurrentTimeScale()
-    setCanvasContextStyle(ctx, { ...xAxisConfig, strokeStyle: xAxisConfig.tickColor })
+    setCanvasContextStyle(axisCtx, { ...xAxisConfig, strokeStyle: xAxisConfig.tickColor })
     // draw ticks
-    this.renderer.drawTicks(ctx, ticksData, this.bound, textMargin, tickWidth, timeScale)
-    setCanvasContextStyle(ctx, xAxisConfig)
-    // draw border line
-    this.renderer.draw(ctx, this.bound)
-    const { width, height } = this.bound
-    const rightBottomBound = { x: width, y: -height, width: yAxis.width, height: xAxisConfig.height }
-    Canvas.drawBackground(ctx, background, rightBottomBound)
-    this.renderer.drawRightBottomBoundBorder(ctx, { ...rightBottomBound, y: 0 })
-    ctx.restore()
+    this.renderer.drawTicks(axisCtx, ticksData, this.bound, textMargin, tickWidth, timeScale)
+    if (drawMode === DrawMode.All) {
+      setCanvasContextStyle(frameCtx, xAxisConfig)
+      // draw border line
+      this.renderer.draw(frameCtx, this.bound)
+      const rightBottomBound = {
+        x: this.bound.width,
+        y: 0,
+        width: yAxis.width,
+        height: xAxisConfig.height,
+      }
+      this.renderer.drawRightBottomBoundBorder(frameCtx, rightBottomBound)
+    }
+    this.restoreCtxs([axisCtx, frameCtx])
   }
 
   public setViewBound() {

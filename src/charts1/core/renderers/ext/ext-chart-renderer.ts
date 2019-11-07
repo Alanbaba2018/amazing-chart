@@ -9,11 +9,17 @@ export default class GapRenderer extends IRenderer {
     ctx.stroke()
   }
 
-  public drawCrossLine = (ctx: CanvasRenderingContext2D, focusPoint: Point, bound: Bound) => {
-    ctx.setLineDash([6, 6])
+  public drawTitle = (ctx: CanvasRenderingContext2D, text: string, point: Point) => {
+    Canvas.drawText(ctx, text, point.x, point.y)
+  }
+
+  public drawCloseIcon = (ctx: CanvasRenderingContext2D, bound: Bound) => {
+    const { x, y, width: w, height: h } = bound
+    const padding = 3
     ctx.beginPath()
-    Canvas.drawLine(ctx, 0, -focusPoint.y, bound.width, -focusPoint.y)
-    Canvas.drawLine(ctx, focusPoint.x, 0, focusPoint.x, -bound.height)
+    Canvas.strokeRect(ctx, x, -(y + h), w, h)
+    Canvas.drawLine(ctx, x + padding, -(y + padding), x + w - padding, -(y + h - padding))
+    Canvas.drawLine(ctx, x + padding, -(y + h - padding), x + w - padding, -(y + padding))
     ctx.stroke()
   }
 }

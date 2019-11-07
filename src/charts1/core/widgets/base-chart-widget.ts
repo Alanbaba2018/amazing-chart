@@ -1,16 +1,17 @@
 import IWidget from './iWidget'
-import { Point, CommonObject } from '../../typeof/type'
+import { CommonObject, TickData } from '../../typeof/type'
 import { setElementStyle, setCanvasContextStyle, formatTime, isZero } from '../../util/helper'
 import Canvas from '../canvas'
 import TimeAxis from '../../model/time-axis'
 import BasePanel from '../basePanel'
 
 export default abstract class BaseChartWidget extends IWidget {
-  public config = { zIndex: 1 }
+  private defaultConfig = { zIndex: 1, showClose: false, iconSize: 40, margin: 10 }
 
   constructor() {
     super()
     this._initEvents()
+    this.setAttrs(this.defaultConfig)
   }
 
   private _initEvents() {
@@ -33,13 +34,14 @@ export default abstract class BaseChartWidget extends IWidget {
     })
   }
 
-  // transfer absolute point to draw-axis point
-  private transformPointToView(point: Point): Point {
-    const parent = this.getRoot()
-    const margin = parent.getAttr('margin')
+  public getXYTicksData() {
+    const root = this.getRoot()
+    const parent = this.getParent() as BasePanel
+    const xAxisData = root.getXAxis().getAxisData()
+    const yAxisData = parent.yAxis.getAxisData()
     return {
-      x: point.x - margin.left,
-      y: this.bound.y - point.y,
+      xData: xAxisData.map((tickData: TickData) => tickData.p),
+      yData: yAxisData.map((tickData: TickData) => tickData.p),
     }
   }
 
@@ -49,21 +51,27 @@ export default abstract class BaseChartWidget extends IWidget {
     if (!this.getAttr('isMouseover')) {
       setElementStyle(root.getHitCanvas(), { cursor: 'crosshair' })
     }
-    const isShowCrossLine = root.getAttr('crossHair').show || false
+    const { show: isShowCrossLine = false } = root.getAttr('crossHair')
     if (!isShowCrossLine) return
     const _hitCtx = root.getHitContext()
     const xAxis = root.getXAxis()
+    const { visibleViewHeight } = root
     const { yAxis } = parent
     const { lineColor, xLabelColor, yLabelColor, labelBackground } = root.getAttr('crossHair')
     const viewPoint = this.transformPointToView(evt.point)
+    const xValue = xAxis.getValueOfCoord(viewPoint.x)
+    viewPoint.x = xAxis.getCoordOfValue(xValue)
     Canvas.clearRect(_hitCtx)
     _hitCtx.save()
     this.setCanvasTransform(_hitCtx)
     setCanvasContextStyle(_hitCtx, { strokeStyle: lineColor })
-    this.renderer.drawCrossLine(_hitCtx, viewPoint, this.getBound())
+    const margin = root.getAttr('margin')
+    const { y, width } = this.bound
+    const extent = { minX: 0, minY: margin.top - y, maxX: width, maxY: visibleViewHeight - y }
+    this.renderer.drawCrossLine(_hitCtx, viewPoint, extent)
     const xLabel = {
-      point: { x: viewPoint.x, y: 0 },
-      text: formatTime(xAxis.getValueOfCoord(viewPoint.x)),
+      point: { x: viewPoint.x, y: visibleViewHeight - this.bound.y },
+      text: formatTime(xValue),
       color: xLabelColor,
     }
     const yLabel = {

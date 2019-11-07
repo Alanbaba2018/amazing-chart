@@ -191,7 +191,8 @@ export const TimeScales = [
 
 export enum DrawMode {
   All = 'All',
-  Scene = 'Scene',
+  YAxis = 'YAxis',
+  XAxis = 'XAxis',
 }
 
 export enum ViewType {
@@ -216,6 +217,10 @@ export enum ColorMap {
   White = '#ffffff',
   Black = '#000000',
   Gray = '#2d2d2d',
+  CandleRed = '#940505',
+  CandleBorderRed = '#c60606',
+  CandleGreen = '#00c582',
+  LightGray = '#9a9b9a',
 }
 
 interface Margin {
@@ -295,4 +300,11 @@ export const GapWidgetHeight: number = 20
 export enum PanelType {
   BASE = 'BASE',
   EXT = 'EXT',
+}
+
+export interface StandardBar {
+  x: number
+  y: number
+  width: number
+  height: number
 }

@@ -1,11 +1,14 @@
 import { CommonObject, CommonKeys } from '../typeof/type'
+import { getDevicePixelRatio } from '../util/helper'
 
 export default abstract class EventHandle {
   private eventListeners: {
     [k: string]: Array<{ name: string; handler: Function }>
   } = {}
 
-  public config: CommonObject = {}
+  public config: CommonObject = {
+    devicePixelRatio: getDevicePixelRatio(),
+  }
 
   public getConfig(): CommonObject {
     return this.config

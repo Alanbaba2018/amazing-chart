@@ -2,13 +2,11 @@ import EventHandle from '../eventHandle'
 import BasePanel from '../basePanel'
 import Candlestick from '../candlestick'
 import IRenderer from '../renderers/iRenderer'
-import { Bound, Point } from '../../typeof/type'
+import { Bound, Point, DrawMode } from '../../typeof/type'
 import { getDevicePixelRatio } from '../../util/helper'
 import Axis from '../../model/axis'
 
 export default abstract class IWidget extends EventHandle {
-  public config = { zIndex: 0 }
-
   public bound: Bound = { x: 0, y: 0, width: 0, height: 0 }
 
   private _parent: Candlestick | BasePanel
@@ -71,11 +69,36 @@ export default abstract class IWidget extends EventHandle {
     this.setBound({ ...this.bound, ...bound })
   }
 
-  public initialData() {}
+  public initialCtxs(ctxs: CanvasRenderingContext2D[]) {
+    ctxs.forEach(ctx => {
+      ctx.save()
+      this.setCanvasTransform(ctx)
+    })
+  }
+
+  public restoreCtxs(ctxs: CanvasRenderingContext2D[]) {
+    ctxs.forEach(ctx => ctx.restore())
+  }
+
+  // transfer absolute point to draw-axis point
+  public transformPointToView(point: Point): Point {
+    const parent = this.getRoot()
+    const margin = parent.getAttr('margin')
+    return {
+      x: point.x - margin.left,
+      y: this.bound.y - point.y,
+    }
+  }
+
+  public createClipBound(ctx: CanvasRenderingContext2D) {
+    ctx.beginPath()
+    ctx.rect(0, -this.bound.height, this.bound.width, this.bound.height)
+    ctx.clip()
+  }
 
   public abstract renderer: IRenderer
 
   public abstract setViewBound(bound?: Bound): void
 
-  public abstract render(): void
+  public abstract render(drawMode: DrawMode): void
 }

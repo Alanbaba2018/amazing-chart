@@ -6,18 +6,20 @@ import TimeAxisWidget from './widgets/time-axis-widget'
 import TimelineWidget from './widgets/timeline-widget'
 import GapWidget from './widgets/ext/gap-widget'
 import Axis from '../model/axis'
+import Range from '../model/range'
 import TimeAxis from '../model/time-axis'
 import Canvas from './canvas'
 import {
   PanelOptions,
   CandlestickItem,
   Point,
-  Bound,
   CommonKeys,
   RegisterEvents,
   ExtendView,
   PanelType,
   ViewType,
+  AddViewTypes,
+  DrawMode,
 } from '../typeof/type'
 import {
   createCanvasElement,
@@ -66,14 +68,8 @@ export default class Candlestick extends BaseView {
 
   private _visibleViewHeight: number = 0
 
-  private _baseViewWeight: number = 1
-
   public get visibleViewHeight(): number {
     return this._visibleViewHeight
-  }
-
-  public get baseViewWeight(): number {
-    return this._baseViewWeight
   }
 
   public get gapWidgets(): GapWidget[] {
@@ -237,15 +233,17 @@ export default class Candlestick extends BaseView {
     this.update()
   }
 
-  public clearPanel(bound?: Bound) {
+  public clearPanel(drawMode: DrawMode) {
     const ctx = this.getContext()
     const axisCtx = this.getAxisContext()
     const staticCtx = this.getStaticContext()
     const frameCtx = this.getFrameContext()
-    Canvas.clearRect(ctx, bound)
-    Canvas.clearRect(axisCtx, bound)
-    Canvas.clearRect(staticCtx)
-    Canvas.clearRect(frameCtx)
+    Canvas.clearRect(ctx)
+    Canvas.clearRect(axisCtx)
+    if (drawMode === DrawMode.All) {
+      Canvas.clearRect(staticCtx)
+      Canvas.clearRect(frameCtx)
+    }
   }
 
   public setWidgetParent(widget: IWidget) {
@@ -294,8 +292,11 @@ export default class Candlestick extends BaseView {
   }
 
   public setVisibleSeriesData() {
+    const unitValue = this._xAxis.getUnitTimeValue()
     const timeDomainRange = this._xAxis.domainRange
-    const visibleData = this.getSeriesData().filter((item: CandlestickItem) => timeDomainRange.contain(item.time))
+    // add and subtract one unitvalue to keep line continuely
+    const extTimeRange = new Range(timeDomainRange.getMinValue() - unitValue, timeDomainRange.getMaxValue() + unitValue)
+    const visibleData = this.getSeriesData().filter((item: CandlestickItem) => extTimeRange.contain(item.time))
     this.setAttr('visibleSeriesData', visibleData)
   }
 
@@ -330,7 +331,7 @@ export default class Candlestick extends BaseView {
     const timeAxisWidget = new TimeAxisWidget()
     const timelineWidget = new TimelineWidget()
     this.initExtWidgets()
-    this.addPanels([basePanel, timeAxisWidget, timelineWidget, ...this._gapWidgets, ...this._extPanels])
+    this.addPanels([timeAxisWidget, timelineWidget, basePanel, ...this._gapWidgets, ...this._extPanels])
     this.initPanelBound()
   }
 
@@ -338,11 +339,13 @@ export default class Candlestick extends BaseView {
     const extendViews: ExtendView[] = this.getAttr('extends')
     let frontPanel: BasePanel | null = null
     extendViews.forEach(view => {
-      const extPanel = new BasePanel(PanelType.EXT, view.type)
-      const gapWidget = new GapWidget(frontPanel, extPanel)
-      this._extPanels.push(extPanel)
-      this._gapWidgets.push(gapWidget)
-      frontPanel = extPanel
+      if (AddViewTypes.includes(view.type)) {
+        const extPanel = new BasePanel(PanelType.EXT, view.type, view.params, view.styles)
+        const gapWidget = new GapWidget(frontPanel, extPanel)
+        this._extPanels.push(extPanel)
+        this._gapWidgets.push(gapWidget)
+        frontPanel = extPanel
+      }
     })
   }
 
@@ -392,7 +395,7 @@ export default class Candlestick extends BaseView {
   public updateTimeExtent() {
     this.setVisibleSeriesData()
     this.updateYExtend()
-    this.update()
+    this.update(DrawMode.XAxis)
   }
 
   public updateYExtend() {
@@ -411,7 +414,6 @@ export default class Candlestick extends BaseView {
         Indicator[view.type] && Indicator[view.type].calculate(seriesData, view.params)
       })
     }
-    console.log(seriesData)
   }
 
   private initEvents() {
@@ -459,7 +461,7 @@ export default class Candlestick extends BaseView {
       widget.setAttr('isMousedown', isContain)
     }
     this.eachPanels(panel => {
-      if (panel instanceof BasePanel) {
+      if (panel instanceof BasePanel && panel.contain(evt.point)) {
         panel.eachWidgets(widget => doHandle(widget))
       } else {
         doHandle(panel)
@@ -484,7 +486,7 @@ export default class Candlestick extends BaseView {
       }
     }
     this.eachPanels(panel => {
-      if (panel instanceof BasePanel) {
+      if (panel instanceof BasePanel && panel.contain(evt.point)) {
         panel.eachWidgets(widget => doHandle(widget))
       } else {
         doHandle(panel)
@@ -502,7 +504,7 @@ export default class Candlestick extends BaseView {
       }
     }
     this.eachPanels(panel => {
-      if (panel instanceof BasePanel) {
+      if (panel instanceof BasePanel && panel.contain(evt.point)) {
         panel.eachWidgets(widget => doHandle(widget))
       } else {
         doHandle(panel)
@@ -533,7 +535,7 @@ export default class Candlestick extends BaseView {
       }
     }
     this.eachPanels(panel => {
-      if (panel instanceof BasePanel) {
+      if (panel instanceof BasePanel && panel.contain(evt.point)) {
         panel.eachWidgets(widget => doHandle(widget))
       } else {
         doHandle(panel)

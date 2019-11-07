@@ -1,13 +1,11 @@
 import IWidget from './iWidget'
 import PriceAxisRenderer from '../renderers/price-axis-renderer'
-import { TickData, CommonObject } from '../../typeof/type'
-import { setElementStyle, setCanvasContextStyle, isZero } from '../../util/helper'
-import Canvas from '../canvas'
+import { TickData, CommonObject, Point, DrawMode } from '../../typeof/type'
+import { setElementStyle, setCanvasContextStyle, isZero, isBoundContain } from '../../util/helper'
+// import Canvas from '../canvas'
 import BasePanel from '../basePanel'
 
 export default class PriceAxisWidget extends IWidget {
-  public config = { zIndex: 1000 }
-
   public renderer = new PriceAxisRenderer()
 
   constructor() {
@@ -16,22 +14,24 @@ export default class PriceAxisWidget extends IWidget {
     this.on('mousewheel', this.onmousewheel.bind(this))
   }
 
-  public render() {
-    const parent = this.getRoot()
-    const { yAxis: config, background } = parent.getConfig()
-    const ctx: CanvasRenderingContext2D = parent.getAxisContext()
-    ctx.save()
-    this.setCanvasTransform(ctx)
-    setCanvasContextStyle(ctx, config)
-    Canvas.drawBackground(ctx, background, { ...this.bound, x: 0, y: -this.bound.height })
-    const { tickWidth, textMargin } = config
-    this.renderer.draw(ctx, {
-      bound: this.bound,
-      ticksData: this.getTicksData(),
-      tickWidth,
-      textMargin,
-    })
-    ctx.restore()
+  public render(drawMode: DrawMode) {
+    const root = this.getRoot()
+    const { yAxis: config } = root.getConfig()
+    const axisCtx: CanvasRenderingContext2D = root.getAxisContext()
+    const sceneCtx: CanvasRenderingContext2D = root.getContext()
+    const frameCtx: CanvasRenderingContext2D = root.getFrameContext()
+    const ctxs: CanvasRenderingContext2D[] = [axisCtx, sceneCtx, frameCtx]
+    this.initialCtxs(ctxs)
+    this.createClipBound(axisCtx)
+    const { tickWidth, textMargin, tickColor } = config
+    setCanvasContextStyle(axisCtx, { ...config, strokeStyle: tickColor })
+    this.renderer.drawTicks(axisCtx, this.getTicksData(), textMargin, tickWidth)
+    if (drawMode === DrawMode.All) {
+      setCanvasContextStyle(frameCtx, config)
+      // draw border
+      this.renderer.draw(frameCtx, this.bound)
+    }
+    this.restoreCtxs(ctxs)
   }
 
   public setViewBound() {
@@ -54,10 +54,23 @@ export default class PriceAxisWidget extends IWidget {
     return axisData
   }
 
-  private onmousemove() {
-    if (!this.getAttr('isMouseover')) {
-      setElementStyle(this.getRoot().getHitCanvas(), { cursor: 'ns-resize' })
+  private isHoverCloseIcon(point: Point): boolean {
+    const parent = this.getParent() as BasePanel
+    if (!this.bound.width) {
+      return false
     }
+    const closeBound = parent.getCloseIconBound()
+    return isBoundContain(closeBound, point)
+  }
+
+  private onmousemove(evt: any) {
+    const root = this.getRoot()
+    const viewPoint = this.transformPointToView(evt.point)
+    if (this.isHoverCloseIcon(viewPoint)) {
+      setElementStyle(root.getHitCanvas(), { cursor: 'pointer' })
+      return
+    }
+    setElementStyle(this.getRoot().getHitCanvas(), { cursor: 'ns-resize' })
   }
 
   private onmousewheel(data: CommonObject) {

@@ -47,6 +47,15 @@ export function setCanvasContextStyle(ctx: CanvasRenderingContext2D, config: Com
     }
   })
 }
+
+export function cloneCanvas(targetCanvas: HTMLCanvasElement): HTMLCanvasElement {
+  const canvas = document.createElement('canvas')
+  canvas.width = targetCanvas.width
+  canvas.height = targetCanvas.height
+  const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
+  ctx.drawImage(targetCanvas, 0, 0)
+  return canvas
+}
 // -------------------End canvas api--------------------
 
 export function setElementStyle(element: HTMLElement, styles: { [k: string]: any }) {

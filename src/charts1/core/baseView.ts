@@ -1,7 +1,7 @@
 import EventHandle from './eventHandle'
 import BasePanel from './basePanel'
 import IWidget from './widgets/iWidget'
-import { CandlestickItem } from '../typeof/type'
+import { CandlestickItem, DrawMode } from '../typeof/type'
 
 export default abstract class BaseView extends EventHandle {
   protected panels: Array<BasePanel | IWidget> = []
@@ -34,18 +34,18 @@ export default abstract class BaseView extends EventHandle {
     })
   }
 
-  public update() {
+  public update(drawMode: DrawMode = DrawMode.All) {
     if (this._isWaiting) {
       return
     }
     this._isWaiting = true
     requestAnimationFrame(() => {
-      this.clearPanel()
+      this.clearPanel(drawMode)
       this.panels.forEach(panel => {
         if (panel instanceof BasePanel) {
-          panel.update()
+          panel.updateImmediate(drawMode)
         } else {
-          panel.render()
+          panel.render(drawMode)
         }
       })
       this._isWaiting = false
@@ -85,7 +85,7 @@ export default abstract class BaseView extends EventHandle {
     return this.getAttr('visibleSeriesData') || this.getSeriesData()
   }
 
-  public abstract clearPanel(): void
+  public abstract clearPanel(drawMode: DrawMode): void
 
   public abstract setWidgetParent(panel: BasePanel | IWidget): void
 }

@@ -54,4 +54,9 @@ export default class Canvas {
   static fillRect(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number) {
     ctx.fillRect(x, y, width, height)
   }
+
+  static fillImage(ctx: CanvasRenderingContext2D, image: HTMLCanvasElement) {
+    // Canvas.clearRect(ctx)
+    ctx.drawImage(image, 0, 0)
+  }
 }

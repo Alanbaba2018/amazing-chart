@@ -66,16 +66,4 @@ export default class CandlestickRenderer extends IRenderer {
       ctx.stroke()
     })
   }
-
-  public drawGrid = (ctx: CanvasRenderingContext2D, bound: Bound, xData: number[], yData: number[]) => {
-    const { width, height } = bound
-    ctx.beginPath()
-    yData.forEach(y => {
-      Canvas.drawLine(ctx, 0, -y, width, -y)
-    })
-    xData.forEach(x => {
-      Canvas.drawLine(ctx, x, 0, x, -height)
-    })
-    ctx.stroke()
-  }
 }

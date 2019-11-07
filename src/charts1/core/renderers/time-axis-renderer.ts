@@ -17,13 +17,14 @@ export default class TimeAxisRenderer extends IRenderer {
     Canvas.drawLine(ctx, 0, 0, width, 0)
     // tick X axis line
     Canvas.drawLine(ctx, 0, -height / 3, bound.width, -height / 3)
+    ctx.stroke()
   }
 
   public drawRightBottomBoundBorder = (ctx: CanvasRenderingContext2D, bound: Bound) => {
     ctx.beginPath()
     const { x, y, width, height } = bound
     // top border
-    Canvas.drawLine(ctx, x, y - height, x + width, y - height)
+    Canvas.drawLine(ctx, x, -height, x + width, -height)
     // bottom border
     Canvas.drawLine(ctx, x, y, x + width, y)
     // left border

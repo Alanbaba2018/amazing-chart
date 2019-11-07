@@ -31,7 +31,7 @@ const EMA = {
     params.periods.forEach(period => {
       const sum = this.accumulatePeriodData(seriesData, period, source)
       const SMA = sum / period
-      const propKey = `${overrideKey || this.key}${period}`
+      const propKey = overrideKey || `${this.key}${period}`
       const coeff = 2.0 / (period + 1)
       for (let i = period - 1; i < seriesData.length; i++) {
         const current = seriesData[i]
@@ -63,8 +63,8 @@ const MACD = {
     EMA.calculate(seriesData.slice(longPeriod - 1), { periods: [signalPeriod] }, this.key, this.signalKey)
     for (let i = longPeriod - 1; i < seriesData.length; i++) {
       const current = seriesData[i]
-      if (isNumber(current[`${this.key}`]) && isNumber(current[`${this.signalKey}${signalPeriod}`])) {
-        current[this.oscillatorKey] = current[`${this.key}`] - current[`${this.signalKey}${signalPeriod}`]
+      if (isNumber(current[`${this.key}`]) && isNumber(current[`${this.signalKey}`])) {
+        current[this.oscillatorKey] = current[`${this.key}`] - current[`${this.signalKey}`]
       }
     }
   },
