@@ -518,7 +518,7 @@ export default class Candlestick extends BaseView {
     const canvas = this.getHitCanvas()
     canvas &&
       RegisterEvents.forEach((evt: any) => {
-        EventProxy.on(canvas, evt, this.eventHandler.bind(this, evt))
+        EventProxy.on(canvas, evt, this.eventHandler.bind(this, evt) as EventListener)
         // canvas.addEventListener(evt, this.eventHandler.bind(this, evt))
       })
     window.addEventListener('resize', this.resize.bind(this))

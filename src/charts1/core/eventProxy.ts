@@ -95,7 +95,7 @@ function cloneEventObj(eventObj: Event, overrideObj = {}) {
 const EventProxy = {
   isMobile: isMobile(),
   eventPool: new Map(),
-  getEventName(name): { eventName: keyof HTMLElementEventMap; handler: EventListener } {
+  getEventName(name): { eventName: keyof HTMLElementEventMap; handler: any } {
     const _event = (this.isMobile ? MobileEvents[name] : PCEvents[name]) || {}
     return _event
   },
