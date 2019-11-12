@@ -1,14 +1,17 @@
 import EventHandle from './eventHandle'
-import BasePanel from './basePanel'
+import IPanel from './widgets/IPanel'
 import IWidget from './widgets/iWidget'
-import { CandlestickItem, DrawMode } from '../typeof/type'
+import { CandlestickItem, DrawMode, ExtendView } from '../typeof/type'
+import GapWidget from './widgets/ext/gap-widget'
 
 export default abstract class BaseView extends EventHandle {
-  protected panels: Array<BasePanel | IWidget> = []
+  protected panels: Array<IPanel | IWidget> = []
+
+  protected _extendViews: Map<string, ExtendView> = new Map()
 
   private _isWaiting: boolean = false
 
-  public addPanels(panels: Array<BasePanel | IWidget>) {
+  public addPanels(panels: Array<IPanel | IWidget>) {
     panels.forEach(panel => {
       this.setWidgetParent(panel)
       this.panels.push(panel)
@@ -42,7 +45,7 @@ export default abstract class BaseView extends EventHandle {
     requestAnimationFrame(() => {
       this.clearPanel(drawMode)
       this.panels.forEach(panel => {
-        if (panel instanceof BasePanel) {
+        if (panel instanceof IPanel) {
           panel.updateImmediate(drawMode)
         } else {
           panel.render(drawMode)
@@ -52,7 +55,7 @@ export default abstract class BaseView extends EventHandle {
     })
   }
 
-  public removePanel(panel: BasePanel | IWidget) {
+  public removePanel(panel: IPanel | IWidget) {
     for (let i = 0; i < this.panels.length; i++) {
       if (this.panels[i] === panel) {
         this.panels.splice(i, 1)
@@ -62,18 +65,50 @@ export default abstract class BaseView extends EventHandle {
     return this
   }
 
+  public removePanels(panelSet: Set<IPanel | IWidget>) {
+    for (let i = this.panels.length - 1; i >= 0; i--) {
+      const currentPanel = this.panels[i]
+      if (panelSet.has(currentPanel)) {
+        this.panels.splice(i, 1)
+        panelSet.delete(currentPanel)
+        if (panelSet.size === 0) return
+      }
+    }
+  }
+
   public initPanelBound() {
     this.eachPanels(panel => {
       panel.setViewBound()
     })
   }
 
+  public updatePanelBound() {
+    const allWeight = this.panels.reduce(
+      (acc: number, cur: IPanel | IWidget) => (cur instanceof IPanel ? acc + cur.weight : acc),
+      0,
+    )
+    this.eachPanels(panel => {
+      panel instanceof IPanel && panel.updateViewBound(allWeight)
+      panel instanceof GapWidget && panel.setViewBound()
+    })
+  }
+
+  public resizeAllPanelBound() {
+    this.eachPanels(panel => {
+      panel instanceof IPanel ? panel.updateViewBound() : panel.setViewBound()
+    })
+  }
+
   public initPanelYAxis() {
     this.eachPanels(panel => {
-      if (panel instanceof BasePanel) {
-        panel.initialYAxis()
+      if (panel instanceof IPanel) {
+        panel.setYAxis()
       }
     })
+  }
+
+  public filterPanels(callback: Function): Array<IPanel | IWidget> {
+    return this.panels.filter(panel => callback.call(this, panel))
   }
 
   public getSeriesData(): CandlestickItem[] {
@@ -87,5 +122,5 @@ export default abstract class BaseView extends EventHandle {
 
   public abstract clearPanel(drawMode: DrawMode): void
 
-  public abstract setWidgetParent(panel: BasePanel | IWidget): void
+  public abstract setWidgetParent(panel: IPanel | IWidget): void
 }

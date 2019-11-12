@@ -97,7 +97,7 @@ export default abstract class IRenderer {
         if (width < 2) {
           Canvas.drawLine(ctx, x, -y, x, -(y + _height))
         } else {
-          Canvas.strokeRect(ctx, x, -(y + _height), width, _height)
+          Canvas.fillRect(ctx, x, -(y + _height), width, _height)
         }
       }
     })
@@ -122,15 +122,16 @@ export default abstract class IRenderer {
     ctx.stroke()
   }
 
-  // test
-  public drawOrigin = (ctx: CanvasRenderingContext2D) => {
-    ctx.fillStyle = ColorMap.CandleRed
-    ctx.strokeStyle = ColorMap.CandleRed
-    // ctx.arc(0, 0, 50, 0, Math.PI * 2)
-    // ctx.fill()
+  public drawPaths = (ctx: CanvasRenderingContext2D, paths: Point[]) => {
     ctx.beginPath()
-    ctx.moveTo(80, 0)
-    ctx.lineTo(80, 240)
+    Canvas.drawLines(ctx, paths)
+    ctx.fill()
     ctx.stroke()
+  }
+
+  public drawBars = (ctx: CanvasRenderingContext2D, barDatas: StandardBar[]) => {
+    barDatas.forEach(bar => {
+      Canvas.fillRect(ctx, bar.x, bar.y, bar.width, bar.height)
+    })
   }
 }

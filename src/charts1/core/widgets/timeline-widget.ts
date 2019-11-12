@@ -1,6 +1,7 @@
 import IWidget from './iWidget'
 import TimelineRenderer from '../renderers/timeline-renderer'
-import { CandlestickItem, Bound, Point, TimeInterval, DrawMode } from '../../typeof/type'
+import { CandlestickItem, Bound, Point, DrawMode } from '../../typeof/type'
+import { TimeInterval } from '../../typeof/constant'
 import {
   setElementStyle,
   setCanvasContextStyle,

@@ -39,15 +39,15 @@ const config = {
     yLabelColor: ColorMap.White,
   },
   candlestick: {
-    barWeight: 0.3,
+    barWeight: 0.4,
     [Trend.Up]: {
-      fillStyle: ColorMap.CandleRed,
-      strokeStyle: ColorMap.CandleBorderRed,
+      fillStyle: ColorMap.CandleGreen,
+      strokeStyle: ColorMap.CandleGreen,
       lineWidth: 1,
     },
     [Trend.Down]: {
-      fillStyle: ColorMap.CandleGreen,
-      strokeStyle: ColorMap.CandleGreen,
+      fillStyle: ColorMap.CandleRed,
+      strokeStyle: ColorMap.CandleRed,
       lineWidth: 1,
     },
     grid: {
@@ -56,7 +56,7 @@ const config = {
     },
   },
   timeline: {
-    height: 100,
+    height: 80,
     timeAxisHeight: 30,
     textBaseline: TextBaseLine.Bottom,
     textAlign: TextAlign.Center,
@@ -70,6 +70,9 @@ const config = {
     textMargin: 5,
   },
   extends: [
+    {
+      type: ViewType.VOL,
+    },
     // {
     //   type: ViewType.EMA,
     //   params: {
@@ -79,19 +82,19 @@ const config = {
     //     colors: ['#d7dd98', '#18ccdc', '#3f3db8'],
     //   },
     // },
-    {
-      type: ViewType.MACD,
-      params: {
-        longPeriod: 26,
-        shortPeriod: 12,
-        signalPeriod: 9,
-        period: 26,
-      },
-      styles: {
-        mainLineColor: '#94f996',
-        signalLineColor: '#b2b2b2',
-      },
-    },
+    // {
+    //   type: ViewType.MACD,
+    //   params: {
+    //     longPeriod: 26,
+    //     shortPeriod: 12,
+    //     signalPeriod: 9,
+    //     period: 26,
+    //   },
+    //   styles: {
+    //     mainLineColor: '#94f996',
+    //     signalLineColor: '#b2b2b2',
+    //   },
+    // },
     // {
     //   type: ViewType.MA,
     //   params: {
@@ -116,16 +119,16 @@ const config = {
     //     periods: [14, 50],
     //   },
     // },
-    {
-      type: ViewType.BOLL,
-      params: {
-        period: 20,
-        standardDeviation: 2,
-      },
-      styles: {
-        colors: ['#596a83', '#b2b2b2', '#596a83'],
-      },
-    },
+    // {
+    //   type: ViewType.BOLL,
+    //   params: {
+    //     period: 20,
+    //     standardDeviation: 2,
+    //   },
+    //   styles: {
+    //     colors: ['#596a83', '#b2b2b2', '#596a83'],
+    //   },
+    // },
   ],
 }
 

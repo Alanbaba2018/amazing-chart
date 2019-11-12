@@ -2,7 +2,7 @@ import BaseChartWidget from '../base-chart-widget'
 import ExtChartRenderer from '../../renderers/ext/ext-chart-renderer'
 import { setCanvasContextStyle } from '../../../util/helper'
 import { ColorMap, TextBaseLine, ViewType, DrawMode } from '../../../typeof/type'
-import BasePanel from '../../basePanel'
+import IPanel from '../IPanel'
 import * as Indicator from '../../indicator'
 
 export default class ExtChartWidget extends BaseChartWidget {
@@ -17,7 +17,7 @@ export default class ExtChartWidget extends BaseChartWidget {
 
   public render(drawMode: DrawMode) {
     const root = this.getRoot()
-    const parent = this.getParent() as BasePanel
+    const parent = this.getParent() as IPanel
     const { title } = parent
     const frameCtx = root.getFrameContext()
     const hitCtx = root.getHitContext()
@@ -29,7 +29,7 @@ export default class ExtChartWidget extends BaseChartWidget {
     setCanvasContextStyle(sceneCtx, config.grid)
     const { xData, yData } = this.getXYTicksData()
     this.renderer.drawGrid(sceneCtx, this.bound, xData, yData)
-    if (!drawMode || drawMode === DrawMode.All) {
+    if (drawMode === DrawMode.All) {
       // draw title
       setCanvasContextStyle(frameCtx, {
         fillStyle: ColorMap.LightGray,
@@ -40,12 +40,12 @@ export default class ExtChartWidget extends BaseChartWidget {
       const isShowClose = this.getAttr('showClose')
       isShowClose && this._drawCloseIcon(frameCtx)
     }
-    this._drawSpecialChart(parent.viewType, sceneCtx)
+    this._drawSpecialChart(parent.viewName, sceneCtx)
     this.restoreCtxs(ctxs)
   }
 
   private _drawCloseIcon(frameCtx: CanvasRenderingContext2D) {
-    const parent = this.getParent() as BasePanel
+    const parent = this.getParent() as IPanel
     const closeIconBound = parent.getCloseIconBound()
     this.renderer.drawCloseIcon(frameCtx, closeIconBound)
   }
@@ -53,6 +53,8 @@ export default class ExtChartWidget extends BaseChartWidget {
   private _drawSpecialChart(viewType: ViewType, sceneCtx: CanvasRenderingContext2D) {
     const actions = {
       [ViewType.MACD]: this.drawMacd,
+      [ViewType.ATR]: this.drawATR,
+      [ViewType.VOL]: this.drawVOL,
     }
     if (actions[viewType]) {
       actions[viewType].call(this, sceneCtx)
@@ -60,9 +62,9 @@ export default class ExtChartWidget extends BaseChartWidget {
   }
 
   public drawMacd(sceneCtx: CanvasRenderingContext2D) {
-    const parent = this.getParent() as BasePanel
+    const parent = this.getParent() as IPanel
     const { MACD } = Indicator
-    const oscBarDatas = parent.getBarDatas(MACD.oscillatorKey)
+    const oscBarDatas = parent.getCustomBarDatas(MACD.oscillatorKey)
     this.renderer.drawCandleBar(sceneCtx, oscBarDatas)
     setCanvasContextStyle(sceneCtx, { strokeStyle: ColorMap.LightGray })
     const macdLineDatas = parent.getLineDatas(MACD.key)
@@ -70,5 +72,23 @@ export default class ExtChartWidget extends BaseChartWidget {
     const signalLineDatas = parent.getLineDatas(MACD.signalKey)
     setCanvasContextStyle(sceneCtx, { strokeStyle: ColorMap.CandleGreen })
     this.renderer.drawLineChart(sceneCtx, signalLineDatas)
+  }
+
+  public drawATR(sceneCtx: CanvasRenderingContext2D) {
+    const parent = this.getParent() as IPanel
+    const { ATR } = Indicator
+    const { periods = [] } = parent.getAttr('params')
+    setCanvasContextStyle(sceneCtx, { strokeStyle: ColorMap.LightGray })
+    periods.forEach(period => {
+      const lineDatas = parent.getLineDatas(`${ATR.key}${period}`)
+      this.renderer.drawLineChart(sceneCtx, lineDatas)
+    })
+  }
+
+  public drawVOL(sceneCtx: CanvasRenderingContext2D) {
+    const parent = this.getParent() as IPanel
+    const volBarDatas = parent.getStandardBarDatas('volume')
+    setCanvasContextStyle(sceneCtx, { fillStyle: ColorMap.CandleRed })
+    this.renderer.drawBars(sceneCtx, volBarDatas)
   }
 }

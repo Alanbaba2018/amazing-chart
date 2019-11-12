@@ -6,8 +6,8 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 100vw;
-  height: 100vh;
+  width: 60%;
+  height: 640px;
   transform: translate(-50%, -50%);
   box-shadow: #ddd 0 0 1px 1px;
 }

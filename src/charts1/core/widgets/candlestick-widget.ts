@@ -1,15 +1,28 @@
 import BaseChartWidget from './base-chart-widget'
 import CandlestickRenderer from '../renderers/candlestick-renderer'
-import { Point, ExtendView, ViewType, CandlestickItem, CandlestickBar, Trend } from '../../typeof/type'
+import {
+  Point,
+  ExtendView,
+  ViewType,
+  CandlestickItem,
+  CandlestickBar,
+  Trend,
+  ColorMap,
+  Direction,
+  TextAlign,
+  TextBaseLine,
+} from '../../typeof/type'
 import { setCanvasContextStyle } from '../../util/helper'
 import * as Indicator from '../indicator'
-import BasePanel from '../basePanel'
+import IPanel from './IPanel'
+import GraphHelper from '../graphHelper'
+import Canvas from '../canvas'
 
 export default class CandlestickWidget extends BaseChartWidget {
   public renderer = new CandlestickRenderer()
 
-  public get parent(): BasePanel {
-    return this.getParent() as BasePanel
+  public get parent(): IPanel {
+    return this.getParent() as IPanel
   }
 
   public render() {
@@ -19,12 +32,37 @@ export default class CandlestickWidget extends BaseChartWidget {
     const ctxs = [sceneCtx]
     this.initialCtxs(ctxs)
     this.createClipBound(sceneCtx)
-    setCanvasContextStyle(sceneCtx, config.grid)
+    this.renderExtendViews(sceneCtx)
     const { xData, yData } = this.getXYTicksData()
+    setCanvasContextStyle(sceneCtx, config.grid)
     this.renderer.drawGrid(sceneCtx, this.bound, xData, yData)
     this.renderer.draw(sceneCtx, this.getVisibleBars(), config)
-    this.renderExtendViews(sceneCtx)
+    this.drawMaxAndMinArrows(sceneCtx)
     this.restoreCtxs(ctxs)
+  }
+
+  private drawMaxAndMinArrows(ctx: CanvasRenderingContext2D) {
+    setCanvasContextStyle(ctx, { fillStyle: ColorMap.White, strokeStyle: ColorMap.White })
+    const [max, min] = this.getMaxMinItems()
+    if (max && min) {
+      this.drawArrowText(ctx, max)
+      this.drawArrowText(ctx, min)
+    }
+  }
+
+  private drawArrowText(ctx: CanvasRenderingContext2D, item: { time: number; value: number }) {
+    setCanvasContextStyle(ctx, { textAlign: TextAlign.Right, textBaseline: TextBaseLine.Middle })
+    const pt = this.getPosition(item.time, item.value)
+    const textWidth = Canvas.measureTextWidth(ctx, `${item.value}`)
+    let arrowData = GraphHelper.createArrowData(pt)
+    let lastPoint = arrowData[arrowData.length - 1]
+    if (this.isOverlapLeft(lastPoint.x - textWidth)) {
+      arrowData = GraphHelper.createArrowData(pt, Direction.Left)
+      setCanvasContextStyle(ctx, { textAlign: TextAlign.Left })
+    }
+    this.renderer.drawPaths(ctx, arrowData)
+    lastPoint = arrowData[arrowData.length - 1]
+    Canvas.drawText(ctx, `${item.value}`, lastPoint.x, lastPoint.y)
   }
 
   private renderExtendViews(ctx: CanvasRenderingContext2D) {
@@ -44,7 +82,7 @@ export default class CandlestickWidget extends BaseChartWidget {
 
   private getBollLines(): Point[][] {
     const root = this.getRoot()
-    const parent = this.getParent() as BasePanel
+    const parent = this.getParent() as IPanel
     const xAxis = root.getXAxis()
     const { yAxis } = parent
     const visibleBars = this.getVisibleBars()
@@ -68,7 +106,7 @@ export default class CandlestickWidget extends BaseChartWidget {
 
   private getEMALines(periods: number[]): Point[][] {
     const root = this.getRoot()
-    const parent = this.getParent() as BasePanel
+    const parent = this.getParent() as IPanel
     const xAxis = root.getXAxis()
     const { yAxis } = parent
     const visibleBars = this.getVisibleBars()
@@ -97,9 +135,16 @@ export default class CandlestickWidget extends BaseChartWidget {
     return { x, lowY, highY, openY, closeY }
   }
 
+  private getPosition(time: number, price: number): Point {
+    return {
+      x: this.xAxis.getCoordOfValue(time),
+      y: -this.parent.yAxis.getCoordOfValue(price),
+    }
+  }
+
   private getVisibleBars(): CandlestickBar[] {
     const root = this.getRoot()
-    const visibleData = this.parent.getVisibleSeriesData()
+    const visibleData = root.getVisibleSeriesData()
     const { barWeight = 0.3 } = root.getAttr('candlestick')
     return visibleData.map((item: CandlestickItem) => {
       const { x, lowY, highY, openY, closeY } = this.getBarPosition(item)
@@ -108,7 +153,7 @@ export default class CandlestickWidget extends BaseChartWidget {
         x,
         y: Math.min(openY, closeY),
         width: this.xAxis.unitWidth * barWeight,
-        height: Math.abs(closeY - openY),
+        height: Math.max(1, Math.abs(closeY - openY)),
         openY,
         closeY,
         highY,
@@ -116,5 +161,36 @@ export default class CandlestickWidget extends BaseChartWidget {
         type: item.close - item.open > 0 ? Trend.Up : Trend.Down,
       }
     })
+  }
+
+  private getMaxMinItems(): Array<{ time: number; value: number }> {
+    const root = this.getRoot()
+    const timeRange = this.xAxis.domainRange
+    const visibleData = root.getVisibleSeriesData().filter(item => timeRange.contain(item.time))
+    if (visibleData.length === 0) return []
+    const max = {
+      time: visibleData[0].time,
+      value: visibleData[0].high,
+    }
+    const min = {
+      time: visibleData[0].time,
+      value: visibleData[0].high,
+    }
+    for (let i = 1; i < visibleData.length; i++) {
+      const current = visibleData[i]
+      if (current.high > max.value) {
+        max.time = current.time
+        max.value = current.high
+      }
+      if (current.low < min.value) {
+        min.time = current.time
+        min.value = current.low
+      }
+    }
+    return [max, min]
+  }
+
+  private isOverlapLeft(x: number): boolean {
+    return x < this.xAxis.coordRange.getMinValue()
   }
 }

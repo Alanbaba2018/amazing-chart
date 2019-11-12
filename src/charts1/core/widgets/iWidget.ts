@@ -1,15 +1,13 @@
-import EventHandle from '../eventHandle'
-import BasePanel from '../basePanel'
+import IBound from './iBound'
+import IPanel from './IPanel'
 import Candlestick from '../candlestick'
 import IRenderer from '../renderers/iRenderer'
-import { Bound, Point, DrawMode } from '../../typeof/type'
+import { Bound, DrawMode } from '../../typeof/type'
 import { getDevicePixelRatio } from '../../util/helper'
 import Axis from '../../model/axis'
 
-export default abstract class IWidget extends EventHandle {
-  public bound: Bound = { x: 0, y: 0, width: 0, height: 0 }
-
-  private _parent: Candlestick | BasePanel
+export default abstract class IWidget extends IBound {
+  private _parent: Candlestick | IPanel
 
   public get xAxis(): Axis {
     return this.getRoot().getXAxis()
@@ -17,56 +15,34 @@ export default abstract class IWidget extends EventHandle {
 
   public remove() {
     const parent = this.getParent()
-    if (parent instanceof BasePanel) {
+    if (parent instanceof IPanel) {
       parent.removeWidget(this)
     } else {
       parent.removePanel(this)
     }
   }
 
-  public setParent(parent: Candlestick | BasePanel) {
+  public setParent(parent: Candlestick | IPanel) {
     if (this._parent) {
       throw new Error('Current Node had parent, Pls do not set parent repeatly!')
     }
     this._parent = parent
   }
 
-  public getParent(): Candlestick | BasePanel {
+  public getParent(): Candlestick | IPanel {
     return this._parent
   }
 
   public getRoot(): Candlestick {
-    if (this._parent instanceof BasePanel) {
+    if (this._parent instanceof IPanel) {
       return this._parent.getParent()
     }
     return this._parent
   }
 
-  public getBound(): Bound {
-    return this.bound
-  }
-
-  public setBound(bound: Bound) {
-    this.bound = bound
-    return this
-  }
-
   public setCanvasTransform(ctx: CanvasRenderingContext2D) {
     ctx.scale(getDevicePixelRatio(), getDevicePixelRatio())
     ctx.translate(this.bound.x, this.bound.y)
-  }
-
-  public contain(point: Point): boolean {
-    return (
-      point.x > this.bound.x &&
-      point.y < this.bound.y &&
-      point.x - this.bound.x < this.bound.width &&
-      this.bound.y - point.y < this.bound.height
-    )
-  }
-
-  public updateViewBound(bound: { [k in keyof Bound]: number }) {
-    this.setBound({ ...this.bound, ...bound })
   }
 
   public initialCtxs(ctxs: CanvasRenderingContext2D[]) {
@@ -78,16 +54,6 @@ export default abstract class IWidget extends EventHandle {
 
   public restoreCtxs(ctxs: CanvasRenderingContext2D[]) {
     ctxs.forEach(ctx => ctx.restore())
-  }
-
-  // transfer absolute point to draw-axis point
-  public transformPointToView(point: Point): Point {
-    const parent = this.getRoot()
-    const margin = parent.getAttr('margin')
-    return {
-      x: point.x - margin.left,
-      y: this.bound.y - point.y,
-    }
   }
 
   public createClipBound(ctx: CanvasRenderingContext2D) {

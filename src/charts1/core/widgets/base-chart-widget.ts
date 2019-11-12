@@ -3,7 +3,7 @@ import { CommonObject, TickData } from '../../typeof/type'
 import { setElementStyle, setCanvasContextStyle, formatTime, isZero } from '../../util/helper'
 import Canvas from '../canvas'
 import TimeAxis from '../../model/time-axis'
-import BasePanel from '../basePanel'
+import IPanel from './IPanel'
 
 export default abstract class BaseChartWidget extends IWidget {
   private defaultConfig = { zIndex: 1, showClose: false, iconSize: 40, margin: 10 }
@@ -23,7 +23,7 @@ export default abstract class BaseChartWidget extends IWidget {
 
   public setViewBound() {
     const root = this.getRoot()
-    const parent = this.getParent() as BasePanel
+    const parent = this.getParent() as IPanel
     const bound = parent.getBound()
     const yAxis = root.getAttr('yAxis')
     this.setBound({
@@ -36,7 +36,7 @@ export default abstract class BaseChartWidget extends IWidget {
 
   public getXYTicksData() {
     const root = this.getRoot()
-    const parent = this.getParent() as BasePanel
+    const parent = this.getParent() as IPanel
     const xAxisData = root.getXAxis().getAxisData()
     const yAxisData = parent.yAxis.getAxisData()
     return {
@@ -47,7 +47,7 @@ export default abstract class BaseChartWidget extends IWidget {
 
   private mousemove(evt: any) {
     const root = this.getRoot()
-    const parent = this.getParent() as BasePanel
+    const parent = this.getParent() as IPanel
     if (!this.getAttr('isMouseover')) {
       setElementStyle(root.getHitCanvas(), { cursor: 'crosshair' })
     }

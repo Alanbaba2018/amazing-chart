@@ -1,9 +1,10 @@
-import { TimeScaleType, TimeScale, TimeScales, TimeInterval, TickData } from '../typeof/type'
+import { TimeScaleType, TimeScale, TickData } from '../typeof/type'
+import { TimeScales, TimeInterval } from '../typeof/constant'
 import { getDaysBetween, getHoursBetween, getMinutesBetween } from '../util/helper'
 import Axis from './axis'
 
 export default class TimeAxis extends Axis {
-  public unitWidth: number = 20
+  public unitWidth: number = 8
 
   protected timeUnitValue: number = 0
 

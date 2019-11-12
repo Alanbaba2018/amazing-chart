@@ -1,9 +1,8 @@
 import IWidget from './iWidget'
 import PriceAxisRenderer from '../renderers/price-axis-renderer'
-import { TickData, CommonObject, Point, DrawMode } from '../../typeof/type'
-import { setElementStyle, setCanvasContextStyle, isZero, isBoundContain } from '../../util/helper'
-// import Canvas from '../canvas'
-import BasePanel from '../basePanel'
+import { TickData, CommonObject, DrawMode, ChartType } from '../../typeof/type'
+import { setElementStyle, setCanvasContextStyle, isZero } from '../../util/helper'
+import IPanel from './IPanel'
 
 export default class PriceAxisWidget extends IWidget {
   public renderer = new PriceAxisRenderer()
@@ -37,7 +36,7 @@ export default class PriceAxisWidget extends IWidget {
   public setViewBound() {
     const root = this.getRoot()
     const parent = this.getParent()
-    const bound = (parent as BasePanel).getBound()
+    const bound = (parent as IPanel).getBound()
     const yAxis = root.getAttr('yAxis')
     this.setBound({
       x: bound.x + bound.width - yAxis.width,
@@ -48,34 +47,25 @@ export default class PriceAxisWidget extends IWidget {
   }
 
   public getTicksData(): TickData[] {
-    const parent = this.getParent() as BasePanel
+    const parent = this.getParent() as IPanel
     const axis = parent.yAxis
     const axisData = axis.getAxisData()
     return axisData
   }
 
-  private isHoverCloseIcon(point: Point): boolean {
-    const parent = this.getParent() as BasePanel
-    if (!this.bound.width) {
-      return false
-    }
-    const closeBound = parent.getCloseIconBound()
-    return isBoundContain(closeBound, point)
-  }
-
-  private onmousemove(evt: any) {
-    const root = this.getRoot()
+  private onmousemove(evt: CommonObject) {
+    const parent = this.getParent() as IPanel
     const viewPoint = this.transformPointToView(evt.point)
-    if (this.isHoverCloseIcon(viewPoint)) {
-      setElementStyle(root.getHitCanvas(), { cursor: 'pointer' })
-      return
+    const isMouseover = this.getAttr('isMouseover')
+    const isHoverClose = parent.isHoverCloseIcon(viewPoint)
+    if (!isMouseover || !isHoverClose) {
+      setElementStyle(this.getRoot().getHitCanvas(), { cursor: 'ns-resize' })
     }
-    setElementStyle(this.getRoot().getHitCanvas(), { cursor: 'ns-resize' })
   }
 
   private onmousewheel(data: CommonObject) {
     const { deltaY } = data.originEvent
-    const parent = this.getParent() as BasePanel
+    const parent = this.getParent() as IPanel
     const root = this.getRoot()
     const { yAxis } = parent
     const oldScaleCoeff = yAxis.getCurrentScaleCoeff()
@@ -83,7 +73,11 @@ export default class PriceAxisWidget extends IWidget {
     // deltaY > 0 ? 1.05 : 0.95;
     // zoomIn and zoomOut should be reciprocal relationship
     const coeff = deltaY > 0 ? 1 + scaleRatio : 1 / (1 + scaleRatio)
-    yAxis.scaleAroundCenter(coeff)
+    if (parent.chartType === ChartType.Standard) {
+      yAxis.scaleAboveBottom(coeff)
+    } else {
+      yAxis.scaleAroundCenter(coeff)
+    }
     const newScaleCoeff = yAxis.getCurrentScaleCoeff()
     if (!isZero(oldScaleCoeff - newScaleCoeff)) {
       parent.update()

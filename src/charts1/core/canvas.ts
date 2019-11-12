@@ -55,8 +55,8 @@ export default class Canvas {
     ctx.fillRect(x, y, width, height)
   }
 
-  static fillImage(ctx: CanvasRenderingContext2D, image: HTMLCanvasElement) {
-    // Canvas.clearRect(ctx)
-    ctx.drawImage(image, 0, 0)
+  static measureTextWidth(ctx: CanvasRenderingContext2D, text: string): number {
+    const metric = ctx.measureText(text)
+    return metric.width
   }
 }

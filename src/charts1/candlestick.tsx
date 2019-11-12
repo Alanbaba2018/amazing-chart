@@ -30,7 +30,7 @@ const applyNodeProps = (instance: CandlestickPanel, props: CommonObject) => {
     instance.update()
   }
 }
-const Candlestick = (props: CommonContextProps, ref) => {
+const Candlestick = forwardRef((props: CommonContextProps, ref) => {
   const containerRef = useRef(null)
   const candlestickRef = useRef<CandlestickPanel>()
   useImperativeHandle(ref, () => ({
@@ -45,6 +45,6 @@ const Candlestick = (props: CommonContextProps, ref) => {
     }
   })
   return <div ref={containerRef} className={props.className} style={props.style} />
-}
+})
 
-export default forwardRef(Candlestick)
+export default Candlestick

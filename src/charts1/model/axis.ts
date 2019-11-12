@@ -8,10 +8,10 @@ export default class Axis {
 
   public unitWidth: number = 60
 
-  private _displayUnitWidth: number = 60
+  private _displayUnitWidth: number = 0
 
   // current scale ratio, so that we can calculate y-Extent updated map to axis
-  protected _scaleCoeff: number = 3
+  protected _scaleCoeff: number = 1.5
 
   protected _maxScaleCoeff: number = 6
 
@@ -25,8 +25,16 @@ export default class Axis {
     }
   }
 
+  public setCurrentScaleCoeff(coeff: number) {
+    this._scaleCoeff = coeff
+  }
+
   public getCurrentScaleCoeff(): number {
     return this._scaleCoeff
+  }
+
+  public setUnitWidth(width: number) {
+    this.unitWidth = width
   }
 
   // from middle to both sides draw
@@ -42,7 +50,8 @@ export default class Axis {
     }
     const unitValue = (this.domainRange.getInterval() / this.coordRange.getInterval()) * this._displayUnitWidth
     const halfRestWidth = this.coordRange.getInterval() / 2 - this._displayUnitWidth / 2
-    const tickCounts = Math.ceil(halfRestWidth / this._displayUnitWidth) * 2
+    // deal edge condition
+    const tickCounts = Math.ceil(halfRestWidth / this._displayUnitWidth + 1e-5) * 2
     const disCoord: number = halfRestWidth % this._displayUnitWidth
     const startCoord = this.coordRange.getMinValue() + disCoord
     const startValue = this.domainRange.getMinValue() + (disCoord / this._displayUnitWidth) * unitValue
@@ -78,5 +87,12 @@ export default class Axis {
     this.unitWidth /= coeff
     this._scaleCoeff *= coeff
     this.domainRange.scaleAroundCenter(coeff)
+  }
+
+  public scaleAboveBottom(coeff: number) {
+    if (this._scaleCoeff * coeff > this._maxScaleCoeff || this._scaleCoeff * coeff < this._minScaleCoeff) return
+    this.unitWidth /= coeff
+    this._scaleCoeff *= coeff
+    this.domainRange.scaleAboveBottom(coeff)
   }
 }

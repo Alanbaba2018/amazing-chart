@@ -1,13 +1,15 @@
 const fs = require('fs');
-let data = fs.readFileSync('./data.json');
+// let data = fs.readFileSync('./data.json');
+let data = fs.readFileSync('./klines.json');
 data = JSON.parse(data.toString());
 const _data = data.map(item => {
   return {
-    time: item[0],
+    // time: item[0],
     open: Number(item[1]),
     high: Number(item[2]),
     low: Number(item[3]),
-    close: Number(item[4])
+    close: Number(item[4]),
+    volume: Number(item[5]),
   }
 });
 fs.writeFile('./src/data.json', JSON.stringify(_data), (err) => {

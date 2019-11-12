@@ -1,4 +1,4 @@
-import { CandlestickItem } from '../typeof/type'
+import { CandlestickItem, ChartType } from '../typeof/type'
 import { isNumber } from '../util/type-check'
 
 interface MacdParams {
@@ -12,6 +12,8 @@ interface BollParams {
   standardDeviation: number
 }
 const EMA = {
+  title: 'EMA',
+  type: ChartType.Custom,
   key: 'EMA',
   accumulatePeriodData(seriesData: CandlestickItem[], period: number, source: string) {
     let sum = 0
@@ -47,6 +49,8 @@ const EMA = {
 }
 
 const MACD = {
+  title: 'MACD',
+  type: ChartType.Custom,
   key: 'MACD', // MACD line(DIFF)
   oscillatorKey: 'OSC', // Oscillator(震荡指标)
   signalKey: 'SIGNAL', // signal line(信号线)
@@ -71,6 +75,8 @@ const MACD = {
 }
 
 const SMA = {
+  title: 'SMA',
+  type: ChartType.Custom,
   key: 'SMA',
   calculate(seriesData: CandlestickItem[], params: { periods: number[] }, source: string = 'open') {
     params.periods.forEach(period => {
@@ -87,6 +93,8 @@ const SMA = {
 }
 
 const MOMENTUM = {
+  title: 'MOMENTUM',
+  type: ChartType.Custom,
   key: 'MOMENTUM',
   calculate(seriesData: CandlestickItem[], params: { periods: number[] }, source: string = 'close') {
     params.periods.forEach(period => {
@@ -99,6 +107,8 @@ const MOMENTUM = {
 }
 
 const ATR = {
+  title: 'ATR',
+  type: ChartType.Custom,
   key: 'ATR',
   getTR(current: CandlestickItem, prev: CandlestickItem, source: string = 'close'): number {
     const HL = current.high - current.low
@@ -127,6 +137,8 @@ const ATR = {
 }
 
 const BOLL = {
+  title: 'BOLL',
+  type: ChartType.Custom,
   key: 'BOLL',
   upKey: 'UP',
   mdKey: 'MB',
@@ -154,4 +166,11 @@ const BOLL = {
   },
 }
 
-export { EMA, MACD, SMA, MOMENTUM, ATR, BOLL }
+const VOL = {
+  title: 'VOL',
+  type: ChartType.Standard,
+  key: 'VOL',
+  calculate() {},
+}
+
+export { EMA, MACD, SMA, MOMENTUM, ATR, BOLL, VOL }

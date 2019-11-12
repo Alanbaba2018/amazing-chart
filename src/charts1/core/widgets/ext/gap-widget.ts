@@ -1,27 +1,36 @@
 import IWidget from '../iWidget'
 import GapRenderer from '../../renderers/ext/gap-renderer'
 import { setCanvasContextStyle, setElementStyle } from '../../../util/helper'
-import { ColorMap, GapWidgetHeight } from '../../../typeof/type'
-import BasePanel from '../../basePanel'
+import { ColorMap } from '../../../typeof/type'
+import { GapWidgetHeight } from '../../../typeof/constant'
+import IPanel from '../IPanel'
 
 export default class GapWidget extends IWidget {
   public config = { zIndex: 100 }
 
   public renderer = new GapRenderer()
 
-  private _frontPanel: BasePanel | null
+  private _frontPanel: IPanel
 
-  private _nextPanel: BasePanel
+  private _nextPanel: IPanel
 
-  public get frontPanel(): BasePanel | null {
+  public get frontPanel(): IPanel {
     return this._frontPanel
   }
 
-  public get nextPanel(): BasePanel {
+  public set frontPanel(panel: IPanel) {
+    this._frontPanel = panel
+  }
+
+  public get nextPanel(): IPanel {
     return this._nextPanel
   }
 
-  constructor(frontPanel: BasePanel | null, nextPanel: BasePanel) {
+  public set nextPanel(panel: IPanel) {
+    this._nextPanel = panel
+  }
+
+  constructor(frontPanel: IPanel, nextPanel: IPanel) {
     super()
     this._frontPanel = frontPanel
     this._nextPanel = nextPanel
@@ -39,27 +48,12 @@ export default class GapWidget extends IWidget {
   }
 
   public setViewBound() {
-    const root = this.getRoot()
-    const { margin, width } = root.getConfig()
-    const { extPanels, visibleViewHeight, gapWidgets } = root
-    if (this._frontPanel) {
-      const frontPanelBound = this._frontPanel.getBound()
-      this.setBound({
-        x: margin.left,
-        y: frontPanelBound.x + GapWidgetHeight,
-        width: width - margin.left - margin.right,
-        height: GapWidgetHeight,
-      })
-    } else {
-      const weight = 1 / (extPanels.length + 1)
-      const eachViewHeight = (visibleViewHeight - GapWidgetHeight * gapWidgets.length) * weight
-      this.setBound({
-        x: margin.left,
-        y: margin.top + eachViewHeight + GapWidgetHeight,
-        width: width - margin.left - margin.right,
-        height: GapWidgetHeight,
-      })
-    }
+    const frontPanelBound = this._frontPanel.getBound()
+    this.setBound({
+      ...frontPanelBound,
+      y: frontPanelBound.y + GapWidgetHeight,
+      height: GapWidgetHeight,
+    })
   }
 
   private _initEvents() {
@@ -79,7 +73,10 @@ export default class GapWidget extends IWidget {
     let { y: startY } = evt.point
     this.on('mousemove.mousedown', (e: any) => {
       const { y: moveY } = e.point
-      console.log(moveY - startY)
+      const dy = moveY - startY
+      this._frontPanel.updateViewBoundHeight(dy, dy)
+      this.setBound({ ...this.bound, y: this.bound.y + dy })
+      this._nextPanel.updateViewBoundHeight(-dy, 0)
       startY = moveY
     })
     this.on('mouseup.mousedown', this._clearDragEvent)

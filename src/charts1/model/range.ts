@@ -60,6 +60,12 @@ export default class Range {
     this._max = p + rightInterval * coeff
   }
 
+  public scaleAboveBottom(coeff: number) {
+    if (!isNumber(coeff)) return
+    const interval = this.getInterval()
+    this._max = this._min + interval * coeff
+  }
+
   public shift(step: number) {
     if (!isNumber(step)) return
     this._min += step

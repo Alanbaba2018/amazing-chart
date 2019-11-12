@@ -1,6 +1,6 @@
 /* eslint-disable max-lines*/
 import BaseView from './baseView'
-import BasePanel from './basePanel'
+import IPanel from './widgets/IPanel'
 import IWidget from './widgets/iWidget'
 import TimeAxisWidget from './widgets/time-axis-widget'
 import TimelineWidget from './widgets/timeline-widget'
@@ -14,25 +14,20 @@ import {
   CandlestickItem,
   Point,
   CommonKeys,
-  RegisterEvents,
-  ExtendView,
   PanelType,
   ViewType,
-  AddViewTypes,
   DrawMode,
+  CommonObject,
 } from '../typeof/type'
-import {
-  createCanvasElement,
-  geElementOffsetFromParent,
-  setElementStyle,
-  getTimestamp,
-  getDevicePixelRatio,
-} from '../util/helper'
+import { RegisterEvents, AddViewTypes } from '../typeof/constant'
+import { createCanvasElement, geElementOffsetFromParent, setElementStyle } from '../util/helper'
 import CandlestickOptions from './options'
 import * as Indicator from './indicator'
+import { isString } from '../util/type-check'
+import EventProxy from './eventProxy'
 
 export default class Candlestick extends BaseView {
-  public config = { ...CandlestickOptions }
+  protected defaultConfig = { ...CandlestickOptions }
 
   protected _canvas: HTMLCanvasElement // main scene canvas
 
@@ -60,29 +55,25 @@ export default class Candlestick extends BaseView {
 
   protected _xAxis: Axis
 
-  protected _baseWidgets: IWidget[] = []
-
-  protected _extPanels: BasePanel[] = []
-
-  protected _gapWidgets: GapWidget[] = []
-
   private _visibleViewHeight: number = 0
+
+  private _maxTimestamp: number = 0
 
   public get visibleViewHeight(): number {
     return this._visibleViewHeight
   }
 
-  public get gapWidgets(): GapWidget[] {
-    return this._gapWidgets
+  public get gapWidgetsLength(): number {
+    return this.filterPanels(panel => panel instanceof GapWidget).length
   }
 
-  public get extPanels(): BasePanel[] {
-    return this._extPanels
+  public get iPanels(): IPanel[] {
+    return this.filterPanels(panel => panel instanceof IPanel) as IPanel[]
   }
 
   constructor(options: PanelOptions) {
     super()
-    this.setAttrs(options)
+    this.setAttrs({ ...this.defaultConfig, ...options })
     this.initContainer()
     this.initWidgets()
     this.initEvents()
@@ -222,12 +213,24 @@ export default class Candlestick extends BaseView {
     return this._xAxis
   }
 
+  public getMaxTimestamp(): number {
+    return this._maxTimestamp
+  }
+
   public resize() {
     const container = this.getAttr('container')
     if (!container) return
+    const { width: oldWidth, height: oldHeight } = this.getConfig()
     this.setAttrs({ width: container.clientWidth, height: container.clientHeight })
-    this.updateContainerSize()
-    // this.eachPanels((widget: IWidget) => widget.setViewBound())
+    const { width: newWidth, height: newHeight } = this.getConfig()
+    if (oldWidth !== newWidth || oldHeight !== newHeight) {
+      // stash previous center timestamp
+      const timeDomain = this._xAxis.domainRange
+      const centerTime = (timeDomain.getMinValue() + timeDomain.getMaxValue()) / 2
+      this.updateContainerSize()
+      this.setAxis(centerTime)
+      this.resizeAllPanelBound()
+    }
     const background = this.getAttr('background')
     background && this.setPanelBackground(background)
     this.update()
@@ -252,9 +255,10 @@ export default class Candlestick extends BaseView {
 
   protected setPanelBackground(color: string) {
     const ctx = this.getBgContext()
+    const devicePixelRatio = this.getAttr('devicePixelRatio')
     if (ctx) {
       ctx.save()
-      ctx.scale(getDevicePixelRatio(), getDevicePixelRatio())
+      ctx.scale(devicePixelRatio, devicePixelRatio)
       const { width = 0, height = 0 } = this.getConfig()
       Canvas.drawBackground(ctx, color, { x: 0, y: 0, width, height })
       ctx.restore()
@@ -282,12 +286,16 @@ export default class Candlestick extends BaseView {
     return [Math.min(...values), Math.max(...values)]
   }
 
-  public setAxis() {
+  public setAxis(centerTime?: number) {
     const { yAxis, margin, width } = this.getConfig()
     const viewWidth = width - yAxis.width - margin.left - margin.right
-    const xExtent = this.getVisibleTimeExtent()
-    const visibleSeriesData = this.getVisibleSeriesData()
-    this._xAxis = new TimeAxis(xExtent, [0, viewWidth], visibleSeriesData.length)
+    const xExtent = this.getTimeExtent()
+    const [, maxTime] = xExtent
+    this._maxTimestamp = maxTime
+    const seriesData = this.getSeriesData()
+    this._xAxis = new TimeAxis(xExtent, [0, viewWidth], seriesData.length)
+    centerTime = centerTime || this._maxTimestamp
+    this.setTimeAxisCenter(centerTime)
     this.setVisibleSeriesData()
   }
 
@@ -327,26 +335,28 @@ export default class Candlestick extends BaseView {
   public initWidgets() {
     const { margin, timeline, xAxis, height } = this.getConfig()
     this._visibleViewHeight = height - margin.top - margin.bottom - timeline.height - xAxis.height
-    const basePanel = new BasePanel(PanelType.BASE, ViewType.CANDLE)
+    const basePanel = new IPanel(PanelType.BASE, ViewType.CANDLE)
     const timeAxisWidget = new TimeAxisWidget()
     const timelineWidget = new TimelineWidget()
-    this.initExtWidgets()
-    this.addPanels([timeAxisWidget, timelineWidget, basePanel, ...this._gapWidgets, ...this._extPanels])
+    const extPanels: Array<IPanel | IWidget> = this.getExtPanels(basePanel)
+    this.addPanels([timeAxisWidget, timelineWidget, basePanel, ...extPanels])
     this.initPanelBound()
   }
 
-  public initExtWidgets() {
-    const extendViews: ExtendView[] = this.getAttr('extends')
-    let frontPanel: BasePanel | null = null
+  public getExtPanels(basePanel: IPanel): Array<IPanel | IWidget> {
+    const extendViews = this.getAttr('extends') || []
+    const extPanels: Array<IPanel | IWidget> = []
+    let frontPanel: IPanel = basePanel
     extendViews.forEach(view => {
       if (AddViewTypes.includes(view.type)) {
-        const extPanel = new BasePanel(PanelType.EXT, view.type, view.params, view.styles)
+        const extPanel = new IPanel(PanelType.EXT, view.type, view.params, view.styles)
+        this._extendViews.set(view.type, view)
         const gapWidget = new GapWidget(frontPanel, extPanel)
-        this._extPanels.push(extPanel)
-        this._gapWidgets.push(gapWidget)
+        extPanels.push(gapWidget, extPanel)
         frontPanel = extPanel
       }
     })
+    return extPanels
   }
 
   public updateContainerSize() {
@@ -354,12 +364,12 @@ export default class Candlestick extends BaseView {
     const { width, height } = this.getConfig()
     this.setAttrs({ width, height })
     const styles = { width: `${width}px`, height: `${height}px` }
+    const devicePixelRatio = this.getAttr('devicePixelRatio')
     canvasCollection.forEach((canvas: HTMLCanvasElement) => {
-      canvas.width = width * getDevicePixelRatio()
-      canvas.height = height * getDevicePixelRatio()
+      canvas.width = width * devicePixelRatio
+      canvas.height = height * devicePixelRatio
       setElementStyle(canvas, styles)
     })
-    this.setAxis()
   }
 
   public shiftTimeLine(px: number) {
@@ -384,12 +394,36 @@ export default class Candlestick extends BaseView {
   }
 
   public locateTimeLine(timestamp: number) {
+    this.setTimeAxisCenter(timestamp)
+    this.updateTimeExtent()
+  }
+
+  public addOrUpdateLastData(item: { t: number; o: string; h: string; c: string; l: string; v: string }) {
+    const seriesData = this.getAttr('seriesData')
+    const addItem = { time: item.t, open: item.o, close: item.c, high: item.h, low: item.l, volume: item.v }
+    this.formatItem(addItem)
+    const lastItem = seriesData[seriesData.length - 1]
+    if (lastItem.time !== addItem.time) {
+      seriesData.push(addItem)
+      if (this._xAxis.domainRange.contain(addItem.time)) {
+        this.calculateIndicators()
+        this.shiftTimeLineByTime(this._xAxis.getUnitTimeValue())
+        return
+      }
+    } else {
+      Object.assign(lastItem, addItem)
+    }
+    this.calculateIndicators()
+    this.updateYExtend()
+    this.update()
+  }
+
+  public setTimeAxisCenter(centerTime: number) {
     const timeAxis = this.getXAxis() as TimeAxis
     const interval = timeAxis.domainRange.getInterval()
     const fullTimeExtent = this.getTimeExtent()
-    const minTime = Math.max(fullTimeExtent[0], timestamp - interval / 2)
+    const minTime = Math.max(fullTimeExtent[0], centerTime - interval / 2)
     timeAxis.domainRange.setMinValue(minTime).setMaxValue(minTime + interval)
-    this.updateTimeExtent()
   }
 
   public updateTimeExtent() {
@@ -400,43 +434,99 @@ export default class Candlestick extends BaseView {
 
   public updateYExtend() {
     this.eachPanels(panel => {
-      if (panel instanceof BasePanel) {
+      if (panel instanceof IPanel) {
         panel.updateYExtend()
       }
     })
   }
 
-  public calculateExtendIndicators() {
+  public calculateIndicators() {
     const seriesData = this.getSeriesData()
-    const extendViews: ExtendView[] = this.getAttr('extends')
-    if (extendViews && extendViews.length > 0) {
+    if (this._extendViews.size > 0) {
+      const extendViews = Array.from(this._extendViews.values())
       extendViews.forEach(view => {
         Indicator[view.type] && Indicator[view.type].calculate(seriesData, view.params)
       })
     }
   }
 
+  /* close chart panel */
+  public closePanel(panel: IPanel | string) {
+    /* first: find panels related width target
+    second: update frontPanel and nextPanel of gapWidget
+    */
+    if (isString(panel)) {
+      panel = this.panels.find(ipanel => ipanel instanceof IPanel && ipanel.viewName === panel) as IPanel
+    }
+    const closePanel = panel as IPanel
+    let frontGap!: GapWidget
+    let nextGap!: GapWidget
+    const panelSets: Set<IPanel | IWidget> = new Set([closePanel])
+    const gapWidgets = this.filterPanels(ipanel => ipanel instanceof GapWidget) as GapWidget[]
+    for (let i = 0; i < gapWidgets.length; i++) {
+      const currentGap = gapWidgets[i]
+      if (currentGap.nextPanel === closePanel) {
+        frontGap = currentGap
+      }
+      if (currentGap.frontPanel === closePanel) {
+        nextGap = currentGap
+      }
+    }
+    // is Middle panel
+    if (nextGap) {
+      panelSets.add(nextGap)
+      frontGap.nextPanel = nextGap.nextPanel
+    } else {
+      panelSets.add(frontGap)
+    }
+    closePanel.viewName && this._extendViews.delete(closePanel.viewName)
+    this.removePanels(panelSets)
+    this.updatePanelBound()
+    this.update()
+  }
+
+  public addPanel(type: ViewType, params: CommonObject, styles: CommonObject = {}) {
+    this._extendViews.set(type, { type, params, styles })
+    if (AddViewTypes.includes(type)) {
+      let frontPanel!: IPanel
+      // find last IPanel
+      for (let i = this.panels.length - 1; i >= 0; i--) {
+        const currentPanel = this.panels[i]
+        if (currentPanel instanceof IPanel) {
+          frontPanel = currentPanel
+          break
+        }
+      }
+      const extPanel = new IPanel(PanelType.EXT, type, params, styles)
+      const gapWidget = new GapWidget(frontPanel, extPanel)
+      this.addPanels([gapWidget, extPanel])
+      this.calculateIndicators()
+      this.updatePanelBound()
+    }
+    this.update()
+  }
+
   private initEvents() {
     this.on(`seriesData${CommonKeys.Change}`, () => {
       // transfer date string to timestamp number
       const seriesData = this.getSeriesData()
-      seriesData.forEach(item => {
-        item.time = getTimestamp(item.time)
-      })
-      this.calculateExtendIndicators()
+      seriesData.forEach(this.formatItem)
+      this.calculateIndicators()
       this.setAxis()
       this.initPanelYAxis()
     })
     const canvas = this.getHitCanvas()
     canvas &&
       RegisterEvents.forEach((evt: any) => {
-        canvas.addEventListener(evt, this.eventHandler.bind(this, evt))
+        EventProxy.on(canvas, evt, this.eventHandler.bind(this, evt))
+        // canvas.addEventListener(evt, this.eventHandler.bind(this, evt))
       })
     window.addEventListener('resize', this.resize.bind(this))
   }
 
   private eventHandler(eventType: string, e: MouseEvent) {
     const eventActions = {
+      click: this.onclick,
       mousedown: this.onmousedown,
       mousemove: this.onmousemove,
       wheel: this.onmousewheel,
@@ -445,71 +535,68 @@ export default class Candlestick extends BaseView {
     }
     const point: Point = geElementOffsetFromParent(e)
     const evt = { point, originEvent: e }
-    if ((eventActions as any)[eventType]) {
-      ;(eventActions as any)[eventType].call(this, evt)
+    if ((eventActions as CommonObject)[eventType]) {
+      ;(eventActions as CommonObject)[eventType].call(this, evt)
     }
     e.stopPropagation()
     e.preventDefault()
   }
 
-  private onmousedown(evt: any) {
-    const doHandle = (widget: IWidget) => {
-      const isContain = widget.contain(evt.point)
+  private onclick(evt: CommonObject) {
+    const doHandle = (panel: IWidget | IPanel) => {
+      const isContain = panel.contain(evt.point)
       if (isContain) {
-        widget.fire('mousedown', evt)
+        panel instanceof IPanel && panel.eachWidgets(doHandle)
+        panel.fire('click', evt)
       }
-      widget.setAttr('isMousedown', isContain)
     }
-    this.eachPanels(panel => {
-      if (panel instanceof BasePanel && panel.contain(evt.point)) {
-        panel.eachWidgets(widget => doHandle(widget))
-      } else {
-        doHandle(panel)
-      }
-    })
+    this.eachPanels(doHandle)
   }
 
-  private onmousemove(evt: any) {
+  private onmousedown(evt: CommonObject) {
+    const doHandle = (panel: IWidget | IPanel) => {
+      const isContain = panel.contain(evt.point)
+      if (isContain) {
+        panel instanceof IPanel && panel.eachWidgets(doHandle)
+        panel.fire('mousedown', evt)
+      }
+      panel.setAttr('isMousedown', isContain)
+    }
+    this.eachPanels(doHandle)
+  }
+
+  private onmousemove(evt: CommonObject) {
     let isMoveToWidget: boolean = false
-    const doHandle = (widget: IWidget) => {
-      const isMouseover = widget.getAttr('isMouseover')
-      if (widget.contain(evt.point)) {
+    const doHandle = (panel: IWidget | IPanel) => {
+      panel instanceof IPanel && panel.eachWidgets(doHandle)
+      const isMouseover = panel.getAttr('isMouseover')
+      if (panel.contain(evt.point)) {
         isMoveToWidget = true
         if (!isMouseover) {
-          widget.fire('mouseover', evt)
+          panel.fire('mouseover', evt)
         }
-        widget.fire('mousemove', evt)
-        !isMouseover && widget.setAttr('isMouseover', true)
+        // mousemove check prop 'isMouseover', when it's false so setting mouse style
+        panel.fire('mousemove', evt)
+        panel.setAttr('isMouseover', true)
       } else if (isMouseover) {
-        widget.fire('mouseout', evt)
-        widget.setAttr('isMouseover', false)
+        panel.fire('mouseout', evt)
+        panel.setAttr('isMouseover', false)
       }
     }
-    this.eachPanels(panel => {
-      if (panel instanceof BasePanel && panel.contain(evt.point)) {
-        panel.eachWidgets(widget => doHandle(widget))
-      } else {
-        doHandle(panel)
-      }
-    })
+    this.eachPanels(doHandle)
     if (!isMoveToWidget) {
       setElementStyle(this.getHitCanvas(), { cursor: 'default' })
     }
   }
 
   private onmouseup(evt: any) {
-    const doHandle = (widget: IWidget) => {
-      if (widget.contain(evt.point)) {
-        widget.fire('mouseup', evt)
+    const doHandle = (panel: IWidget | IPanel) => {
+      if (panel.contain(evt.point)) {
+        panel instanceof IPanel && panel.eachWidgets(doHandle)
+        panel.fire('mouseup', evt)
       }
     }
-    this.eachPanels(panel => {
-      if (panel instanceof BasePanel && panel.contain(evt.point)) {
-        panel.eachWidgets(widget => doHandle(widget))
-      } else {
-        doHandle(panel)
-      }
-    })
+    this.eachPanels(doHandle)
   }
 
   private onmouseout() {
@@ -519,27 +606,22 @@ export default class Candlestick extends BaseView {
         widget.fire('mouseout')
       }
     }
-    this.eachPanels(panel => {
-      if (panel instanceof BasePanel) {
-        panel.eachWidgets(widget => doHandle(widget))
-      } else {
-        doHandle(panel)
-      }
-    })
+    this.eachPanels(doHandle)
   }
 
-  private onmousewheel(evt: any) {
-    const doHandle = (widget: IWidget) => {
-      if (widget.contain(evt.point)) {
-        widget.fire('mousewheel', evt)
+  private onmousewheel(evt: CommonObject) {
+    const doHandle = (panel: IWidget | IPanel) => {
+      if (panel.contain(evt.point)) {
+        panel instanceof IPanel && panel.eachWidgets(doHandle)
+        panel.fire('mousewheel', evt)
       }
     }
-    this.eachPanels(panel => {
-      if (panel instanceof BasePanel && panel.contain(evt.point)) {
-        panel.eachWidgets(widget => doHandle(widget))
-      } else {
-        doHandle(panel)
-      }
+    this.eachPanels(doHandle)
+  }
+
+  private formatItem(item: CommonObject) {
+    ;['time', 'open', 'high', 'low', 'close', 'volume'].forEach(key => {
+      item[key] = Number(item[key])
     })
   }
 }

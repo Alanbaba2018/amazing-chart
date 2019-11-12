@@ -1,14 +1,5 @@
-import {
-  Point,
-  TimeScaleType,
-  Bound,
-  Zero,
-  CanvasContextProps,
-  CommonObject,
-  TimeScale,
-  TimeInterval,
-  CandlestickItem,
-} from '../typeof/type'
+import { Point, TimeScaleType, Bound, CommonObject, TimeScale, CandlestickItem } from '../typeof/type'
+import { Zero, CanvasContextProps, TimeInterval } from '../typeof/constant'
 import { isNumber, isString } from './type-check'
 
 interface CanvasOptions {
@@ -273,35 +264,10 @@ export function calculateMA(candleList: CandlestickItem[], index: number, period
     item[`MA${period}`] = Number((lastMA - candleList[index - period].close / period + item.close / period).toFixed(2))
   }
 }
-// calculate Exponential Moving Average(指数平均数指标)
-export function calculateEMA(candleList: CandlestickItem[], index: number, period: number) {
-  const coeff = 2.0 / (period + 1)
-  const item = candleList[index]
-  const { close } = item
-  if (index === 0) {
-    item[`EMA${period}`] = close
-  } else {
-    const yesterdayEMA = candleList[index - 1][`EMA${period}`]
-    item[`EMA${period}`] = Number((close * coeff + yesterdayEMA * (1 - coeff)).toFixed(2))
-  }
-}
-// calculate Moving Average Convergence Divergence – MACD
-export function calculateMACD(
-  candleList: CandlestickItem[],
-  index: number,
-  quickPeriod: number = 12,
-  slowPeriod: number = 26,
-  delay: number = 9,
-) {
-  const item = candleList[index]
-  calculateEMA(candleList, index, quickPeriod)
-  calculateEMA(candleList, index, slowPeriod)
-  item.DIFF = item[`EMA${quickPeriod}`] - item[`EMA${slowPeriod}`]
-  if (index === 0) {
-    item.DEA = 0
-  } else {
-    item.DEA = (2 * item.DIFF + (delay - 1) * candleList[index - 1].DEA) / (delay + 1)
-  }
-  item.MACD = (item.DIFF - item.DEA) * 2
-}
 // -------------End calculate cnadlestick indicator--------
+
+export function isMobile(): boolean {
+  const u = navigator.userAgent
+  const reg = /(AppleWebKit.*Mobile.*)|(\(i[^;]+;( U;)? CPU.+Mac OS X)|(Android)|(Adr)/
+  return reg.test(u)
+}

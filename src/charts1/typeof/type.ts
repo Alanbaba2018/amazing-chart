@@ -27,6 +27,7 @@ export interface CandlestickItem {
   high: number
   low: number
   close: number
+  volume: number
   [k: string]: any
 }
 
@@ -73,14 +74,6 @@ export enum TimeScaleType {
   Second = 'Second',
 }
 
-export const TimeInterval = {
-  [TimeScaleType.Month]: 1,
-  [TimeScaleType.Day]: 24 * 3600 * 1000,
-  [TimeScaleType.Hour]: 3600 * 1000,
-  [TimeScaleType.Minute]: 60 * 1000,
-  [TimeScaleType.Second]: 1000,
-}
-
 export enum CommonKeys {
   Change = 'CHANGE',
 }
@@ -108,86 +101,10 @@ export enum TextAlign {
   Right = 'right', // right : 文本右对齐。
 }
 
-export const Zero: number = 1e-5
-
-export const CanvasContextProps: Array<string | number> = [
-  'strokeStyle',
-  'fillStyle',
-  'globalAlpha',
-  'lineWidth',
-  'lineCap',
-  'lineJoin',
-  'miterLimit',
-  'shadowOffsetX',
-  'shadowOffsetY',
-  'shadowBlur',
-  'shadowColor',
-  'globalCompositeOperation',
-  'font',
-  'textAlign',
-  'textBaseline',
-]
-
-export const ShortMonthLabel: string[] = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-]
-
-export const RegisterEvents: string[] = ['mousedown', 'mousemove', 'mouseup', 'mouseout', 'wheel']
-
 export interface TimeScale {
   type: TimeScaleType
   number: number
 }
-
-export const TimeScales = [
-  {
-    type: TimeScaleType.Month,
-    number: 6,
-  },
-  {
-    type: TimeScaleType.Month,
-    number: 3,
-  },
-  {
-    type: TimeScaleType.Month,
-    number: 1,
-  },
-  {
-    type: TimeScaleType.Day,
-    number: 7,
-  },
-  {
-    type: TimeScaleType.Day,
-    number: 1,
-  },
-  {
-    type: TimeScaleType.Hour,
-    number: 6,
-  },
-  {
-    type: TimeScaleType.Hour,
-    number: 1,
-  },
-  {
-    type: TimeScaleType.Minute,
-    number: 30,
-  },
-  {
-    type: TimeScaleType.Minute,
-    number: 15,
-  },
-]
 
 export enum DrawMode {
   All = 'All',
@@ -204,6 +121,7 @@ export enum ViewType {
   MOMENTUM = 'MOMENTUM',
   ATR = 'ATR',
   BOLL = 'BOLL',
+  VOL = 'VOL',
 }
 export interface ExtendView {
   type: ViewType
@@ -211,13 +129,11 @@ export interface ExtendView {
   styles: CommonObject
 }
 
-export const AddViewTypes = [ViewType.MACD]
-
 export enum ColorMap {
   White = '#ffffff',
   Black = '#000000',
   Gray = '#2d2d2d',
-  CandleRed = '#940505',
+  CandleRed = '#ff0372',
   CandleBorderRed = '#c60606',
   CandleGreen = '#00c582',
   LightGray = '#9a9b9a',
@@ -295,8 +211,6 @@ export interface AxisLabels {
   bgColor: string
 }
 
-export const GapWidgetHeight: number = 20
-
 export enum PanelType {
   BASE = 'BASE',
   EXT = 'EXT',
@@ -307,4 +221,16 @@ export interface StandardBar {
   y: number
   width: number
   height: number
+}
+
+export enum Direction {
+  Up = 'UP',
+  Down = 'DOWN',
+  Right = 'RIGHT',
+  Left = 'LEFT',
+}
+
+export enum ChartType {
+  Standard = 'STANDARD',
+  Custom = 'CUSTOM',
 }

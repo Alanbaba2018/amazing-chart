@@ -30,7 +30,7 @@ export default class CandlestickRenderer extends IRenderer {
         if (width < 2) {
           Canvas.drawLine(ctx, bar.x, -bar.lowY, bar.x, -bar.highY)
         } else {
-          Canvas.strokeRect(ctx, x, y, width, height)
+          // Canvas.strokeRect(ctx, x, y, width, height)
           Canvas.fillRect(ctx, x, y, width, height)
           Canvas.drawLine(ctx, bar.x, -bar.highY, bar.x, y)
           Canvas.drawLine(ctx, bar.x, -bar.lowY, bar.x, y + height)
@@ -49,7 +49,7 @@ export default class CandlestickRenderer extends IRenderer {
         if (width < 2) {
           Canvas.drawLine(ctx, bar.x, -bar.lowY, bar.x, -bar.highY)
         } else {
-          Canvas.strokeRect(ctx, x, y, width, height)
+          Canvas.fillRect(ctx, x, y, width, height)
           Canvas.drawLine(ctx, bar.x, -bar.lowY, bar.x, -bar.closeY)
           Canvas.drawLine(ctx, bar.x, -bar.highY, bar.x, y)
         }
