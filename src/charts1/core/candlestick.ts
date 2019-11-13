@@ -25,6 +25,7 @@ import CandlestickOptions from './options'
 import * as Indicator from './indicator'
 import { isString } from '../util/type-check'
 import EventProxy from './eventProxy'
+import * as G from '../lib'
 
 export default class Candlestick extends BaseView {
   protected defaultConfig = { ...CandlestickOptions }
@@ -77,6 +78,7 @@ export default class Candlestick extends BaseView {
     this.initContainer()
     this.initWidgets()
     this.initEvents()
+    console.log(G)
   }
 
   public getCanvasCollection(): HTMLCanvasElement[] {
@@ -344,13 +346,13 @@ export default class Candlestick extends BaseView {
   }
 
   public getExtPanels(basePanel: IPanel): Array<IPanel | IWidget> {
-    const extendViews = this.getAttr('extends') || []
+    const extendViews = this.getAttr('indicators') || []
     const extPanels: Array<IPanel | IWidget> = []
     let frontPanel: IPanel = basePanel
     extendViews.forEach(view => {
       if (AddViewTypes.includes(view.type)) {
         const extPanel = new IPanel(PanelType.EXT, view.type, view.params, view.styles)
-        this._extendViews.set(view.type, view)
+        this._indicatorViews.set(view.type, view)
         const gapWidget = new GapWidget(frontPanel, extPanel)
         extPanels.push(gapWidget, extPanel)
         frontPanel = extPanel
@@ -442,8 +444,8 @@ export default class Candlestick extends BaseView {
 
   public calculateIndicators() {
     const seriesData = this.getSeriesData()
-    if (this._extendViews.size > 0) {
-      const extendViews = Array.from(this._extendViews.values())
+    if (this._indicatorViews.size > 0) {
+      const extendViews = Array.from(this._indicatorViews.values())
       extendViews.forEach(view => {
         Indicator[view.type] && Indicator[view.type].calculate(seriesData, view.params)
       })
@@ -479,14 +481,14 @@ export default class Candlestick extends BaseView {
     } else {
       panelSets.add(frontGap)
     }
-    closePanel.viewName && this._extendViews.delete(closePanel.viewName)
+    closePanel.viewName && this._indicatorViews.delete(closePanel.viewName)
     this.removePanels(panelSets)
     this.updatePanelBound()
     this.update()
   }
 
   public addPanel(type: ViewType, params: CommonObject, styles: CommonObject = {}) {
-    this._extendViews.set(type, { type, params, styles })
+    this._indicatorViews.set(type, { type, params, styles })
     if (AddViewTypes.includes(type)) {
       let frontPanel!: IPanel
       // find last IPanel
@@ -518,13 +520,13 @@ export default class Candlestick extends BaseView {
     const canvas = this.getHitCanvas()
     canvas &&
       RegisterEvents.forEach((evt: any) => {
-        EventProxy.on(canvas, evt, this.eventHandler.bind(this, evt) as EventListener)
+        EventProxy.on(canvas, evt, this.eventHandler.bind(this, evt))
         // canvas.addEventListener(evt, this.eventHandler.bind(this, evt))
       })
     window.addEventListener('resize', this.resize.bind(this))
   }
 
-  private eventHandler(eventType: string, e: MouseEvent) {
+  private eventHandler(eventType: string, e: any) {
     const eventActions = {
       click: this.onclick,
       mousedown: this.onmousedown,
@@ -538,8 +540,8 @@ export default class Candlestick extends BaseView {
     if ((eventActions as CommonObject)[eventType]) {
       ;(eventActions as CommonObject)[eventType].call(this, evt)
     }
-    e.stopPropagation()
-    e.preventDefault()
+    e.originEvent ? e.originEvent.stopPropagation() : e.stopPropagation()
+    e.originEvent ? e.originEvent.preventDefault() : e.preventDefault()
   }
 
   private onclick(evt: CommonObject) {
@@ -563,6 +565,7 @@ export default class Candlestick extends BaseView {
       panel.setAttr('isMousedown', isContain)
     }
     this.eachPanels(doHandle)
+    this.fire('mousedown', evt)
   }
 
   private onmousemove(evt: CommonObject) {
@@ -584,6 +587,7 @@ export default class Candlestick extends BaseView {
       }
     }
     this.eachPanels(doHandle)
+    this.fire('mousemove', evt)
     if (!isMoveToWidget) {
       setElementStyle(this.getHitCanvas(), { cursor: 'default' })
     }
@@ -597,6 +601,7 @@ export default class Candlestick extends BaseView {
       }
     }
     this.eachPanels(doHandle)
+    this.fire('mouseup', evt)
   }
 
   private onmouseout() {
@@ -617,6 +622,7 @@ export default class Candlestick extends BaseView {
       }
     }
     this.eachPanels(doHandle)
+    this.fire('mousewheel', evt)
   }
 
   private formatItem(item: CommonObject) {

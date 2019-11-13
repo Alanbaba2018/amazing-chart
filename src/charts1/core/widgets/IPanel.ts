@@ -16,6 +16,7 @@ import {
 import { GapWidgetHeight } from '../../typeof/constant'
 import Canvas from '../canvas'
 import Axis from '../../model/axis'
+import FixAxis from '../../model/fix-axis'
 import CandlestickWidget from './candlestick-widget'
 import PriceAxisWidget from './price-axis-widget'
 import ExtChartWidget from './ext/ext-chart-widget'
@@ -26,7 +27,7 @@ import { setElementStyle, isBoundContain } from '../../util/helper'
 export default class IPanel extends IBound {
   public widgets: IWidget[] = []
 
-  private defaultConfig = { iconSize: 12, margin: 8 }
+  private defaultConfig = { iconSize: 10, margin: 5 }
 
   private _isWaiting: boolean = false
 
@@ -84,9 +85,10 @@ export default class IPanel extends IBound {
 
   public setYAxis() {
     const yExtent = this._getYExtent()
-    this._yAxis = new Axis(yExtent, [0, this.bound.height])
     if (this._chartType === ChartType.Standard) {
-      this._yAxis.setCurrentScaleCoeff(1)
+      this._yAxis = new FixAxis([0, yExtent[1]], [0, this.bound.height])
+    } else {
+      this._yAxis = new Axis(yExtent, [0, this.bound.height])
     }
   }
 
@@ -214,9 +216,13 @@ export default class IPanel extends IBound {
     const newCenter = (yExtent[0] + yExtent[1]) / 2
     const halfInterval = (yExtent[1] - yExtent[0]) / 2
     const scaleCoeff = this._yAxis.getScaleCoeff()
-    this._yAxis.domainRange
-      .setMinValue(newCenter - halfInterval * scaleCoeff)
-      .setMaxValue(newCenter + halfInterval * scaleCoeff)
+    if (this._chartType === ChartType.Standard) {
+      this._yAxis.domainRange.setMinValue(0).setMaxValue(halfInterval * 2 * scaleCoeff)
+    } else {
+      this._yAxis.domainRange
+        .setMinValue(newCenter - halfInterval * scaleCoeff)
+        .setMaxValue(newCenter + halfInterval * scaleCoeff)
+    }
   }
 
   public clearPanel(drawMode: DrawMode = DrawMode.YAxis) {
@@ -396,6 +402,7 @@ export default class IPanel extends IBound {
           acc.push(cur.volume)
           return acc
         }, [])
+        values.push(0)
         this._title = 'VOL'
         break
       default:

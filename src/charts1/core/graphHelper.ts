@@ -21,7 +21,8 @@ export default class GraphHelper {
    * @param direction direction
    */
   static createArrowData(pt: Point, dir: Direction = Direction.Right): Point[] {
-    const arrowPoint = new Vector2(pt.x - this.Arrow_Offset, pt.y)
+    const offset = dir === Direction.Right ? -this.Arrow_Offset : this.Arrow_Offset
+    const arrowPoint = new Vector2(pt.x + offset, pt.y)
     const direction = new Vector2(0, 1).rotate(120)
     const p0 = new Vector2(0, 0)
     const p1 = p0.clone().add(direction.clone().scale(GraphHelper.Arrow_Len))

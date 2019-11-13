@@ -57,9 +57,8 @@ export default class GapWidget extends IWidget {
   }
 
   private _initEvents() {
-    this.on('mousemove', this._onmousemove.bind(this))
-    this.on('mouseout', this._clearDragEvent)
-    this.on('mousedown', this._onmousedown.bind(this))
+    this.on('mousemove', this._onmousemove)
+    this.on('mousedown', this._onmousedown)
   }
 
   private _onmousemove() {
@@ -71,7 +70,9 @@ export default class GapWidget extends IWidget {
 
   private _onmousedown(evt: any) {
     let { y: startY } = evt.point
-    this.on('mousemove.mousedown', (e: any) => {
+    const root = this.getRoot()
+    this._clearDragEvent()
+    root.on('mousemove.gap', (e: any) => {
       const { y: moveY } = e.point
       const dy = moveY - startY
       this._frontPanel.updateViewBoundHeight(dy, dy)
@@ -79,11 +80,12 @@ export default class GapWidget extends IWidget {
       this._nextPanel.updateViewBoundHeight(-dy, 0)
       startY = moveY
     })
-    this.on('mouseup.mousedown', this._clearDragEvent)
+    root.on('mouseup.gap', this._clearDragEvent.bind(this))
   }
 
   private _clearDragEvent() {
-    this.off('mousemove.mousedown')
-    this.off('mouseup.mousedown')
+    const root = this.getRoot()
+    root.off('mousemove.gap')
+    root.off('mouseup.gap')
   }
 }

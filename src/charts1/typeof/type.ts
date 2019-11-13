@@ -123,7 +123,7 @@ export enum ViewType {
   BOLL = 'BOLL',
   VOL = 'VOL',
 }
-export interface ExtendView {
+export interface IndicatorView {
   type: ViewType
   params: { [k: string]: any }
   styles: CommonObject
@@ -197,7 +197,7 @@ export interface CandlestickConfig {
   xAxis: xAxisConfig
   yAxis: yAxisConfig
   timeline: TimelineConfig
-  extends: ExtendView[]
+  extends: IndicatorView[]
 }
 
 interface TextLabel {

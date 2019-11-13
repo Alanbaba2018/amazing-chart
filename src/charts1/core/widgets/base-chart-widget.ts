@@ -125,6 +125,12 @@ export default abstract class BaseChartWidget extends IWidget {
     if (timeRange.getMinValue() < fullTimeExtent[0] || timeRange.getMaxValue() < fullTimeExtent[0]) {
       timeRange.setMinValue(fullTimeExtent[0]).setMaxValue(fullTimeExtent[0] + currentInterval)
     }
+    // when scale origin maxTime more than current scale middle time
+    if (timeRange.getCenter() > fullTimeExtent[1]) {
+      timeRange
+        .setMinValue(fullTimeExtent[1] - currentInterval / 2)
+        .setMaxValue(fullTimeExtent[1] + currentInterval / 2)
+    }
     const newScaleCoeff = timeAxis.getCurrentScaleCoeff()
     if (!isZero(oldScaleCoeff - newScaleCoeff)) {
       parent.updateTimeExtent()

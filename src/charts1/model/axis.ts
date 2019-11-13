@@ -1,19 +1,20 @@
 import Range from './range'
 import { TickData } from '../typeof/type'
+import { generateScale } from '../util/helper'
 
 export default class Axis {
   public domainRange!: Range
 
   public coordRange!: Range
 
-  public unitWidth: number = 60
+  public unitWidth: number = 30
 
   private _displayUnitWidth: number = 0
 
   // current scale ratio, so that we can calculate y-Extent updated map to axis
-  protected _scaleCoeff: number = 1.5
+  protected _scaleCoeff: number = 2
 
-  protected _maxScaleCoeff: number = 6
+  protected _maxScaleCoeff: number = 4
 
   protected _minScaleCoeff: number = 1
 
@@ -27,6 +28,7 @@ export default class Axis {
 
   public setCurrentScaleCoeff(coeff: number) {
     this._scaleCoeff = coeff
+    this.domainRange.scaleAroundCenter(this._scaleCoeff)
   }
 
   public getCurrentScaleCoeff(): number {
@@ -41,24 +43,25 @@ export default class Axis {
   public getAxisData(): TickData[] {
     this._displayUnitWidth = this.unitWidth
     // hardcode to adjust display neared ticks interval
-    if (this._displayUnitWidth >= 140) {
-      this._displayUnitWidth /= Math.log(10)
+    if (this._displayUnitWidth >= 40) {
+      this._displayUnitWidth /= 1.5
+    } else if (this._displayUnitWidth <= 15) {
+      this._displayUnitWidth *= 2.8
     } else if (this._displayUnitWidth <= 25) {
-      this._displayUnitWidth *= Math.log(100)
-    } else if (this._displayUnitWidth <= 45) {
-      this._displayUnitWidth *= Math.log(10)
+      this._displayUnitWidth *= 1.5
     }
-    const unitValue = (this.domainRange.getInterval() / this.coordRange.getInterval()) * this._displayUnitWidth
     const halfRestWidth = this.coordRange.getInterval() / 2 - this._displayUnitWidth / 2
     // deal edge condition
     const tickCounts = Math.ceil(halfRestWidth / this._displayUnitWidth + 1e-5) * 2
-    const disCoord: number = halfRestWidth % this._displayUnitWidth
-    const startCoord = this.coordRange.getMinValue() + disCoord
-    const startValue = this.domainRange.getMinValue() + (disCoord / this._displayUnitWidth) * unitValue
-    const ticks: TickData[] = []
-    for (let i = 0; i < tickCounts; i++) {
-      ticks.push({ p: startCoord + i * this._displayUnitWidth, v: startValue + i * unitValue })
-    }
+    const range = this.domainRange
+    const { min, step } = generateScale(range.getMaxValue(), range.getMinValue(), tickCounts)
+    const ticks: TickData[] = [...Array(tickCounts)].map((_, index) => {
+      const value = min + index * step
+      return {
+        p: this.getCoordOfValue(value),
+        v: value,
+      }
+    })
     return ticks
   }
 

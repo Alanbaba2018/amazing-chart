@@ -28,7 +28,7 @@ export default class TimelineWidget extends IWidget {
 
   private _yAxis: Axis
 
-  private _minUnitWidth: number = 80
+  private _minUnitWidth: number = 40
 
   constructor() {
     super()

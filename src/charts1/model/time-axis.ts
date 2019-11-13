@@ -14,9 +14,9 @@ export default class TimeAxis extends Axis {
 
   protected _minScaleCoeff: number = 0.5
 
-  private _currentTimeScale: TimeScale // 当前时间比例尺
+  private _currentTimeScale: TimeScale // current scale
 
-  private _timeScales: TimeScale[] = [] // 时间轴比例尺
+  private _timeScales: TimeScale[] = [] // time scales
 
   private _maxTimeValue: number
 
@@ -85,7 +85,12 @@ export default class TimeAxis extends Axis {
   }
 
   public scaleAroundTimestamp(timestamp: number, coeff: number) {
-    if (this._scaleCoeff * coeff > this._maxScaleCoeff || this._scaleCoeff * coeff < this._minScaleCoeff) return
+    if (
+      this.unitWidth / coeff < 2 ||
+      this._scaleCoeff * coeff > this._maxScaleCoeff ||
+      this._scaleCoeff * coeff < this._minScaleCoeff
+    )
+      return
     this.unitWidth /= coeff
     this._scaleCoeff *= coeff
     this.domainRange.scaleAroundPoint(timestamp, coeff)

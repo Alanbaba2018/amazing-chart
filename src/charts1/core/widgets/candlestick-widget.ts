@@ -2,7 +2,7 @@ import BaseChartWidget from './base-chart-widget'
 import CandlestickRenderer from '../renderers/candlestick-renderer'
 import {
   Point,
-  ExtendView,
+  IndicatorView,
   ViewType,
   CandlestickItem,
   CandlestickBar,
@@ -32,7 +32,7 @@ export default class CandlestickWidget extends BaseChartWidget {
     const ctxs = [sceneCtx]
     this.initialCtxs(ctxs)
     this.createClipBound(sceneCtx)
-    this.renderExtendViews(sceneCtx)
+    this.renderIndicatorChats(sceneCtx)
     const { xData, yData } = this.getXYTicksData()
     setCanvasContextStyle(sceneCtx, config.grid)
     this.renderer.drawGrid(sceneCtx, this.bound, xData, yData)
@@ -56,17 +56,19 @@ export default class CandlestickWidget extends BaseChartWidget {
     const textWidth = Canvas.measureTextWidth(ctx, `${item.value}`)
     let arrowData = GraphHelper.createArrowData(pt)
     let lastPoint = arrowData[arrowData.length - 1]
+    let textOffset: number = -3
     if (this.isOverlapLeft(lastPoint.x - textWidth)) {
       arrowData = GraphHelper.createArrowData(pt, Direction.Left)
       setCanvasContextStyle(ctx, { textAlign: TextAlign.Left })
+      textOffset = 3
     }
     this.renderer.drawPaths(ctx, arrowData)
     lastPoint = arrowData[arrowData.length - 1]
-    Canvas.drawText(ctx, `${item.value}`, lastPoint.x, lastPoint.y)
+    Canvas.drawText(ctx, `${item.value}`, lastPoint.x + textOffset, lastPoint.y)
   }
 
-  private renderExtendViews(ctx: CanvasRenderingContext2D) {
-    const extendViews: ExtendView[] = this.getRoot().getAttr('extends') || []
+  private renderIndicatorChats(ctx: CanvasRenderingContext2D) {
+    const extendViews: IndicatorView[] = this.getRoot().getAttr('indicators') || []
     extendViews.forEach(view => {
       if (view.type === ViewType.EMA) {
         const { params, styles } = view

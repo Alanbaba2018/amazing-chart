@@ -69,7 +69,7 @@ const config = {
     tickWidth: 5,
     textMargin: 5,
   },
-  extends: [
+  indicators: [
     {
       type: ViewType.VOL,
     },

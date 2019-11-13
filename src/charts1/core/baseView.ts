@@ -1,13 +1,13 @@
 import EventHandle from './eventHandle'
 import IPanel from './widgets/IPanel'
 import IWidget from './widgets/iWidget'
-import { CandlestickItem, DrawMode, ExtendView } from '../typeof/type'
+import { CandlestickItem, DrawMode, IndicatorView } from '../typeof/type'
 import GapWidget from './widgets/ext/gap-widget'
 
 export default abstract class BaseView extends EventHandle {
   protected panels: Array<IPanel | IWidget> = []
 
-  protected _extendViews: Map<string, ExtendView> = new Map()
+  protected _indicatorViews: Map<string, IndicatorView> = new Map()
 
   private _isWaiting: boolean = false
 

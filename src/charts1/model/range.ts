@@ -36,6 +36,10 @@ export default class Range {
     return this._max - this._min
   }
 
+  public getCenter() {
+    return (this._max + this._min) / 2
+  }
+
   public merge(range: Range) {
     if (range.isInvalid) {
       return this

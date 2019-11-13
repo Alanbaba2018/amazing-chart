@@ -3,7 +3,7 @@ import { getDevicePixelRatio } from '../util/helper'
 
 export default abstract class EventHandle {
   private eventListeners: {
-    [k: string]: Array<{ name: string; handler: Function }>
+    [k: string]: Array<{ name: string; handler: Function; global?: boolean }>
   } = {}
 
   public config: CommonObject = {
@@ -38,7 +38,7 @@ export default abstract class EventHandle {
     this._fireChangeEvent(key, oval, val)
   }
 
-  public on(evtStr: string, handler: Function) {
+  public on(evtStr: string, handler: Function, global: boolean = false) {
     const parts: string[] = (evtStr as string).split('.')
     const evt: string = parts[0]
     const namespace: string = parts[1] || ''
@@ -48,6 +48,7 @@ export default abstract class EventHandle {
     this.eventListeners[evt].push({
       name: namespace,
       handler,
+      global,
     })
     return this
   }

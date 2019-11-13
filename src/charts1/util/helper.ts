@@ -271,3 +271,54 @@ export function isMobile(): boolean {
   const reg = /(AppleWebKit.*Mobile.*)|(\(i[^;]+;( U;)? CPU.+Mac OS X)|(Android)|(Adr)/
   return reg.test(u)
 }
+
+export function generateScale(max: number, min: number, splitNumber: number) {
+  const fixedNum = num => (`${num}`.includes('.') ? parseFloat(num.toFixed(8)) : num)
+  const magic = [10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100]
+  const tempGap = (max - min) / splitNumber
+  let multiple = Math.floor(Math.log10(tempGap) - 1)
+  multiple = 10 ** multiple
+  const tempStep = tempGap / multiple
+  let estep
+  let lastIndex = -1
+  let magicIndex = 0
+  for (magicIndex = 0; magicIndex < magic.length; magicIndex++) {
+    if (magic[magicIndex] > tempStep) {
+      estep = magic[magicIndex] * multiple
+      break
+    }
+  }
+  let maxi = 0
+  let mini = 0
+  const countDegree = step => {
+    maxi = parseInt(`${max / step + 1}`, 10) * step
+    mini = parseInt(`${min / step - 1}`, 10) * step
+    if (max === 0) maxi = 0
+    if (min === 0) mini = 0
+  }
+  countDegree(estep)
+  let tempSplitNumber = Math.round((maxi - mini) / estep)
+  while (tempSplitNumber !== splitNumber) {
+    tempSplitNumber = Math.round((maxi - mini) / estep)
+    if ((magicIndex - lastIndex) * (tempSplitNumber - splitNumber) < 0) {
+      while (tempSplitNumber < splitNumber) {
+        if ((mini - min <= maxi - max && mini !== 0) || maxi === 0) {
+          mini -= estep
+        } else {
+          maxi += estep
+        }
+        tempSplitNumber++
+        if (tempSplitNumber === splitNumber) break
+      }
+    }
+    if (magicIndex >= magic.length - 1 || magicIndex <= 0 || tempSplitNumber === splitNumber) break
+    lastIndex = magicIndex
+    if (tempSplitNumber > splitNumber) estep = magic[++magicIndex] * multiple
+    else estep = magic[--magicIndex] * multiple
+    countDegree(estep)
+  }
+  maxi = fixedNum(maxi)
+  mini = fixedNum(mini)
+  const step = fixedNum((maxi - mini) / splitNumber)
+  return { max: maxi, min: mini, step }
+}

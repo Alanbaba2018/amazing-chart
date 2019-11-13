@@ -1,6 +1,6 @@
 import IWidget from './iWidget'
 import PriceAxisRenderer from '../renderers/price-axis-renderer'
-import { TickData, CommonObject, DrawMode, ChartType } from '../../typeof/type'
+import { TickData, CommonObject, DrawMode } from '../../typeof/type'
 import { setElementStyle, setCanvasContextStyle, isZero } from '../../util/helper'
 import IPanel from './IPanel'
 
@@ -73,11 +73,7 @@ export default class PriceAxisWidget extends IWidget {
     // deltaY > 0 ? 1.05 : 0.95;
     // zoomIn and zoomOut should be reciprocal relationship
     const coeff = deltaY > 0 ? 1 + scaleRatio : 1 / (1 + scaleRatio)
-    if (parent.chartType === ChartType.Standard) {
-      yAxis.scaleAboveBottom(coeff)
-    } else {
-      yAxis.scaleAroundCenter(coeff)
-    }
+    yAxis.scaleAroundCenter(coeff)
     const newScaleCoeff = yAxis.getCurrentScaleCoeff()
     if (!isZero(oldScaleCoeff - newScaleCoeff)) {
       parent.update()
