@@ -136,9 +136,8 @@ export default class IPanel extends IBound {
     const parent = this.getParent()
     const { margin, width } = parent.getConfig()
     const { visibleViewHeight, gapWidgetsLength, iPanels } = parent
-    if (iPanels.length > 1) {
-      this._weight = this.panelType === PanelType.BASE ? 0.7 : 0.3
-    }
+    const allWidght = 7 + 3 * (iPanels.length - 1)
+    this._weight = this.panelType === PanelType.BASE ? 7 / allWidght : 3 / allWidght
     const viewHeight = (visibleViewHeight - GapWidgetHeight * gapWidgetsLength) * this._weight
     let frontPanelY = margin.top
     for (let i = 0; i < iPanels.length; i++) {
@@ -276,17 +275,19 @@ export default class IPanel extends IBound {
     return barDatas
   }
 
-  public getStandardBarDatas(key: string): StandardBar[] {
-    const barDatas: StandardBar[] = []
-    const visibleData = this.getVisibleSeriesData()
+  public getStandardBarDatas(key: string): { up: StandardBar[]; down: StandardBar[] } {
+    const visibleData: CandlestickItem[] = this.getVisibleSeriesData()
     const parent = this.getParent()
     const { barWeight = 0.3 } = parent.getAttr('candlestick')
     const unitWidth = this.xAxis.unitWidth * barWeight
+    const upDatas: StandardBar[] = []
+    const downDatas: StandardBar[] = []
     visibleData.forEach(item => {
       if (item[key]) {
         const x = this.xAxis.getCoordOfValue(item.time)
         const y = this.yAxis.getCoordOfValue(item[key])
-        barDatas.push({
+        const list = item.open < item.close ? upDatas : downDatas
+        list.push({
           x: x - unitWidth,
           y: -y,
           width: unitWidth * 2,
@@ -294,7 +295,7 @@ export default class IPanel extends IBound {
         })
       }
     })
-    return barDatas
+    return { up: upDatas, down: downDatas }
   }
 
   public getLineDatas(key: string): Point[] {
@@ -357,7 +358,7 @@ export default class IPanel extends IBound {
     const parent = this.getParent()
     const viewPoint = this.transformPointToView(evt.point)
     if (this.isHoverCloseIcon(viewPoint)) {
-      parent.closePanel(this)
+      parent.closeIndicatorPanel(this)
     }
   }
 
@@ -372,7 +373,7 @@ export default class IPanel extends IBound {
   private _getYExtent(): number[] {
     const visibleData = this.getVisibleSeriesData()
     let values: number[] = []
-    const { MACD, ATR } = Indicator
+    const { MACD, ATR, MOMENTUM } = Indicator
     const params = this.getAttr('params')
     switch (this._viewName) {
       case ViewType.CANDLE:
@@ -404,6 +405,14 @@ export default class IPanel extends IBound {
         }, [])
         values.push(0)
         this._title = 'VOL'
+        break
+      case ViewType.MOMENTUM:
+        values = visibleData.reduce((acc: number[], cur: CandlestickItem) => {
+          const indicators = params.periods.map(perid => cur[`${MOMENTUM.key}${perid}`]).filter(isNumber)
+          acc.push(...indicators)
+          return acc
+        }, [])
+        this._title = `${MOMENTUM.title} (${params.periods.join(', ')})`
         break
       default:
         break

@@ -2,7 +2,6 @@ import BaseChartWidget from './base-chart-widget'
 import CandlestickRenderer from '../renderers/candlestick-renderer'
 import {
   Point,
-  IndicatorView,
   ViewType,
   CandlestickItem,
   CandlestickBar,
@@ -68,15 +67,22 @@ export default class CandlestickWidget extends BaseChartWidget {
   }
 
   private renderIndicatorChats(ctx: CanvasRenderingContext2D) {
-    const extendViews: IndicatorView[] = this.getRoot().getAttr('indicators') || []
-    extendViews.forEach(view => {
+    const { indicatorViews } = this.getRoot()
+    indicatorViews.forEach(view => {
       if (view.type === ViewType.EMA) {
-        const { params, styles } = view
+        const { params, styles = [] } = view
         const lines = this.getEMALines(params.periods)
         this.renderer.drawMultiLines(ctx, lines, styles.colors)
       } else if (view.type === ViewType.BOLL) {
-        const { styles } = view
+        const { styles = [] } = view
         const lines = this.getBollLines()
+        this.renderer.drawMultiLines(ctx, lines, styles.colors)
+      } else if (view.type === ViewType.SMA) {
+        const {
+          params: { periods = [] },
+          styles = [],
+        } = view
+        const lines = this.getSMALines(periods)
         this.renderer.drawMultiLines(ctx, lines, styles.colors)
       }
     })
@@ -118,6 +124,27 @@ export default class CandlestickWidget extends BaseChartWidget {
       const x = xAxis.getCoordOfValue(item.time)
       for (let j = 0; j < periods.length; j++) {
         const y = yAxis.getCoordOfValue(item[`EMA${periods[j]}`])
+        if (i === 0) {
+          lines[j] = []
+        }
+        lines[j].push({ x, y: -y })
+      }
+    }
+    return lines
+  }
+
+  private getSMALines(periods: number[]): Point[][] {
+    const root = this.getRoot()
+    const parent = this.getParent() as IPanel
+    const xAxis = root.getXAxis()
+    const { yAxis } = parent
+    const visibleBars = this.getVisibleBars()
+    const lines: Point[][] = []
+    for (let i = 0; i < visibleBars.length; i++) {
+      const item = visibleBars[i]
+      const x = xAxis.getCoordOfValue(item.time)
+      for (let j = 0; j < periods.length; j++) {
+        const y = yAxis.getCoordOfValue(item[`${Indicator.SMA.key}${periods[j]}`])
         if (i === 0) {
           lines[j] = []
         }

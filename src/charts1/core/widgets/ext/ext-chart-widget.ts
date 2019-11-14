@@ -55,6 +55,7 @@ export default class ExtChartWidget extends BaseChartWidget {
       [ViewType.MACD]: this.drawMacd,
       [ViewType.ATR]: this.drawATR,
       [ViewType.VOL]: this.drawVOL,
+      [ViewType.MOMENTUM]: this.drawMOMENTUM,
     }
     if (actions[viewType]) {
       actions[viewType].call(this, sceneCtx)
@@ -87,8 +88,19 @@ export default class ExtChartWidget extends BaseChartWidget {
 
   public drawVOL(sceneCtx: CanvasRenderingContext2D) {
     const parent = this.getParent() as IPanel
-    const volBarDatas = parent.getStandardBarDatas('volume')
+    const { up: upDatas, down: downDatas } = parent.getStandardBarDatas('volume')
     setCanvasContextStyle(sceneCtx, { fillStyle: ColorMap.CandleRed })
-    this.renderer.drawBars(sceneCtx, volBarDatas)
+    this.renderer.drawBars(sceneCtx, downDatas)
+    setCanvasContextStyle(sceneCtx, { fillStyle: ColorMap.CandleGreen })
+    this.renderer.drawBars(sceneCtx, upDatas)
+  }
+
+  public drawMOMENTUM(sceneCtx: CanvasRenderingContext2D) {
+    const parent = this.getParent() as IPanel
+    const { MOMENTUM } = Indicator
+    const { periods = [] } = parent.getAttr('params')
+    const styles = parent.getAttr('styles')
+    const lines = periods.map(period => parent.getLineDatas(`${MOMENTUM.key}${period}`))
+    this.renderer.drawMultiLines(sceneCtx, lines, styles.colors)
   }
 }

@@ -1,6 +1,6 @@
 import IRenderer from './iRenderer'
 import Canvas from '../canvas'
-import { Point, Bound, CandlestickBar, Trend, CommonObject, ColorMap } from '../../typeof/type'
+import { Bound, CandlestickBar, Trend, CommonObject } from '../../typeof/type'
 
 const getBarData = (bar: CandlestickBar): Bound => {
   const { x, y, width, height } = bar
@@ -56,14 +56,5 @@ export default class CandlestickRenderer extends IRenderer {
       }
     })
     ctx.stroke()
-  }
-
-  public drawMultiLines = (ctx: CanvasRenderingContext2D, lines: Point[][], colors: string[] = []) => {
-    lines.forEach((line, index) => {
-      ctx.strokeStyle = colors[index] || ColorMap.White
-      ctx.beginPath()
-      Canvas.drawLines(ctx, line)
-      ctx.stroke()
-    })
   }
 }

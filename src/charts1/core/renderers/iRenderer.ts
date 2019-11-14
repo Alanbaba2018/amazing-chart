@@ -134,4 +134,13 @@ export default abstract class IRenderer {
       Canvas.fillRect(ctx, bar.x, bar.y, bar.width, bar.height)
     })
   }
+
+  public drawMultiLines = (ctx: CanvasRenderingContext2D, lines: Point[][], colors: string[] = []) => {
+    lines.forEach((line, index) => {
+      ctx.strokeStyle = colors[index] || ColorMap.White
+      ctx.beginPath()
+      Canvas.drawLines(ctx, line)
+      ctx.stroke()
+    })
+  }
 }

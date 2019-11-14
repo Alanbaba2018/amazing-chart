@@ -11,6 +11,10 @@ export default abstract class BaseView extends EventHandle {
 
   private _isWaiting: boolean = false
 
+  public get indicatorViews(): IndicatorView[] {
+    return Array.from(this._indicatorViews.values())
+  }
+
   public addPanels(panels: Array<IPanel | IWidget>) {
     panels.forEach(panel => {
       this.setWidgetParent(panel)
@@ -71,6 +75,9 @@ export default abstract class BaseView extends EventHandle {
       if (panelSet.has(currentPanel)) {
         this.panels.splice(i, 1)
         panelSet.delete(currentPanel)
+        if (currentPanel instanceof IPanel) {
+          this._indicatorViews.delete(currentPanel.viewName)
+        }
         if (panelSet.size === 0) return
       }
     }

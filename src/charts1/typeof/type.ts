@@ -1,6 +1,6 @@
 import { CSSProperties, ReactNode } from 'react'
 
-export interface PanelOptions {
+export interface PanelOptions extends CandlestickConfig {
   width?: number
   height?: number
   container: HTMLElement
@@ -178,7 +178,7 @@ interface TimelineConfig extends xAxisConfig {
 export interface CandlestickConfig {
   margin?: Margin
   background?: string
-  candlestick: {
+  candlestick?: {
     barWeight: number
     [Trend.Up]: RectStyles
     [Trend.Down]: RectStyles
@@ -187,17 +187,17 @@ export interface CandlestickConfig {
       lineWidth: number
     }
   }
-  crossHair: {
+  crossHair?: {
     show: boolean
     lineColor: string
     labelBackground: string
     xLabelColor: string
     yLabelColor: string
   }
-  xAxis: xAxisConfig
-  yAxis: yAxisConfig
-  timeline: TimelineConfig
-  extends: IndicatorView[]
+  xAxis?: xAxisConfig
+  yAxis?: yAxisConfig
+  timeline?: TimelineConfig
+  indicators?: IndicatorView[]
 }
 
 interface TextLabel {

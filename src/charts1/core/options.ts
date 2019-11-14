@@ -1,4 +1,4 @@
-import { Trend, TextBaseLine, TextAlign, ViewType, ColorMap } from '../typeof/type'
+import { Trend, TextBaseLine, TextAlign, ColorMap } from '../typeof/type'
 // import { Trend, TextBaseLine, TextAlign, ColorMap } from '../typeof/type'
 
 const config = {
@@ -29,7 +29,7 @@ const config = {
     tickColor: ColorMap.White,
     tickWidth: 5,
     textMargin: 5,
-    scaleRatio: 0.04,
+    scaleRatio: 0.02,
   },
   crossHair: {
     show: true,
@@ -69,67 +69,7 @@ const config = {
     tickWidth: 5,
     textMargin: 5,
   },
-  indicators: [
-    {
-      type: ViewType.VOL,
-    },
-    // {
-    //   type: ViewType.EMA,
-    //   params: {
-    //     periods: [9, 50],
-    //   },
-    //   styles: {
-    //     colors: ['#d7dd98', '#18ccdc', '#3f3db8'],
-    //   },
-    // },
-    // {
-    //   type: ViewType.MACD,
-    //   params: {
-    //     longPeriod: 26,
-    //     shortPeriod: 12,
-    //     signalPeriod: 9,
-    //     period: 26,
-    //   },
-    //   styles: {
-    //     mainLineColor: '#94f996',
-    //     signalLineColor: '#b2b2b2',
-    //   },
-    // },
-    // {
-    //   type: ViewType.MA,
-    //   params: {
-    //     periods: [7, 25, 99],
-    //   },
-    // },
-    // {
-    //   type: ViewType.SMA,
-    //   params: {
-    //     periods: [14, 50],
-    //   },
-    // },
-    // {
-    //   type: ViewType.MOMENTUM,
-    //   params: {
-    //     periods: [14, 50],
-    //   },
-    // },
-    // {
-    //   type: ViewType.ATR,
-    //   params: {
-    //     periods: [14, 50],
-    //   },
-    // },
-    // {
-    //   type: ViewType.BOLL,
-    //   params: {
-    //     period: 20,
-    //     standardDeviation: 2,
-    //   },
-    //   styles: {
-    //     colors: ['#596a83', '#b2b2b2', '#596a83'],
-    //   },
-    // },
-  ],
+  indicators: [],
 }
 
 export default config

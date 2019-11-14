@@ -25,7 +25,7 @@ import CandlestickOptions from './options'
 import * as Indicator from './indicator'
 import { isString } from '../util/type-check'
 import EventProxy from './eventProxy'
-import * as G from '../lib'
+import * as G from '../indicator'
 
 export default class Candlestick extends BaseView {
   protected defaultConfig = { ...CandlestickOptions }
@@ -78,6 +78,7 @@ export default class Candlestick extends BaseView {
     this.initContainer()
     this.initWidgets()
     this.initEvents()
+    this.initialData()
     console.log(G)
   }
 
@@ -340,19 +341,19 @@ export default class Candlestick extends BaseView {
     const basePanel = new IPanel(PanelType.BASE, ViewType.CANDLE)
     const timeAxisWidget = new TimeAxisWidget()
     const timelineWidget = new TimelineWidget()
-    const extPanels: Array<IPanel | IWidget> = this.getExtPanels(basePanel)
+    const extPanels: Array<IPanel | IWidget> = this.getIndicatorPanels(basePanel)
     this.addPanels([timeAxisWidget, timelineWidget, basePanel, ...extPanels])
     this.initPanelBound()
   }
 
-  public getExtPanels(basePanel: IPanel): Array<IPanel | IWidget> {
-    const extendViews = this.getAttr('indicators') || []
+  public getIndicatorPanels(basePanel: IPanel): Array<IPanel | IWidget> {
+    const indicatorViews = this.getAttr('indicators') || []
     const extPanels: Array<IPanel | IWidget> = []
     let frontPanel: IPanel = basePanel
-    extendViews.forEach(view => {
+    indicatorViews.forEach(view => {
+      this._indicatorViews.set(view.type, view)
       if (AddViewTypes.includes(view.type)) {
         const extPanel = new IPanel(PanelType.EXT, view.type, view.params, view.styles)
-        this._indicatorViews.set(view.type, view)
         const gapWidget = new GapWidget(frontPanel, extPanel)
         extPanels.push(gapWidget, extPanel)
         frontPanel = extPanel
@@ -445,49 +446,53 @@ export default class Candlestick extends BaseView {
   public calculateIndicators() {
     const seriesData = this.getSeriesData()
     if (this._indicatorViews.size > 0) {
-      const extendViews = Array.from(this._indicatorViews.values())
-      extendViews.forEach(view => {
+      const indicatorViews = Array.from(this._indicatorViews.values())
+      indicatorViews.forEach(view => {
         Indicator[view.type] && Indicator[view.type].calculate(seriesData, view.params)
       })
     }
   }
 
   /* close chart panel */
-  public closePanel(panel: IPanel | string) {
+  public closeIndicatorPanel(panel: IPanel | string) {
     /* first: find panels related width target
     second: update frontPanel and nextPanel of gapWidget
     */
+    let closePanel: IPanel | string = ''
     if (isString(panel)) {
-      panel = this.panels.find(ipanel => ipanel instanceof IPanel && ipanel.viewName === panel) as IPanel
+      const tPanel = this.panels.find(ipanel => ipanel instanceof IPanel && ipanel.viewName === panel) as IPanel
+      closePanel = tPanel || panel
     }
-    const closePanel = panel as IPanel
-    let frontGap!: GapWidget
-    let nextGap!: GapWidget
-    const panelSets: Set<IPanel | IWidget> = new Set([closePanel])
-    const gapWidgets = this.filterPanels(ipanel => ipanel instanceof GapWidget) as GapWidget[]
-    for (let i = 0; i < gapWidgets.length; i++) {
-      const currentGap = gapWidgets[i]
-      if (currentGap.nextPanel === closePanel) {
-        frontGap = currentGap
-      }
-      if (currentGap.frontPanel === closePanel) {
-        nextGap = currentGap
-      }
-    }
-    // is Middle panel
-    if (nextGap) {
-      panelSets.add(nextGap)
-      frontGap.nextPanel = nextGap.nextPanel
+    if (isString(closePanel)) {
+      this._indicatorViews.delete(closePanel as string)
     } else {
-      panelSets.add(frontGap)
+      let frontGap!: GapWidget
+      let nextGap!: GapWidget
+      const panelSets: Set<IPanel | IWidget> = new Set([closePanel as IPanel])
+      const gapWidgets = this.filterPanels(ipanel => ipanel instanceof GapWidget) as GapWidget[]
+      for (let i = 0; i < gapWidgets.length; i++) {
+        const currentGap = gapWidgets[i]
+        if (currentGap.nextPanel === closePanel) {
+          frontGap = currentGap
+        }
+        if (currentGap.frontPanel === closePanel) {
+          nextGap = currentGap
+        }
+      }
+      // is Middle panel
+      if (nextGap) {
+        panelSets.add(nextGap)
+        frontGap.nextPanel = nextGap.nextPanel
+      } else {
+        panelSets.add(frontGap)
+      }
+      this.removePanels(panelSets)
+      this.updatePanelBound()
     }
-    closePanel.viewName && this._indicatorViews.delete(closePanel.viewName)
-    this.removePanels(panelSets)
-    this.updatePanelBound()
     this.update()
   }
 
-  public addPanel(type: ViewType, params: CommonObject, styles: CommonObject = {}) {
+  public addIndicatorPanel(type: ViewType, params: CommonObject, styles: CommonObject = {}) {
     this._indicatorViews.set(type, { type, params, styles })
     if (AddViewTypes.includes(type)) {
       let frontPanel!: IPanel
@@ -508,14 +513,20 @@ export default class Candlestick extends BaseView {
     this.update()
   }
 
-  private initEvents() {
-    this.on(`seriesData${CommonKeys.Change}`, () => {
-      // transfer date string to timestamp number
-      const seriesData = this.getSeriesData()
+  private initialData() {
+    const seriesData = this.getSeriesData()
+    if (seriesData.length > 0) {
       seriesData.forEach(this.formatItem)
       this.calculateIndicators()
       this.setAxis()
       this.initPanelYAxis()
+    }
+  }
+
+  private initEvents() {
+    this.on(`seriesData${CommonKeys.Change}`, () => {
+      // transfer date string to timestamp number
+      this.initialData()
     })
     const canvas = this.getHitCanvas()
     canvas &&

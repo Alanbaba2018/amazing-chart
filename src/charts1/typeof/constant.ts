@@ -86,4 +86,4 @@ export const CanvasContextProps: Array<string | number> = [
   'textBaseline',
 ]
 
-export const AddViewTypes = [ViewType.MACD, ViewType.ATR, ViewType.VOL]
+export const AddViewTypes = [ViewType.MACD, ViewType.ATR, ViewType.VOL, ViewType.MOMENTUM]

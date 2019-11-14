@@ -12,7 +12,7 @@ const propsToUpdate: string[] = [
   'crossHair',
   'candlestick',
   'timeline',
-  'extends',
+  'indicators',
 ]
 
 const applyNodeProps = (instance: CandlestickPanel, props: CommonObject) => {
@@ -38,9 +38,18 @@ const Candlestick = forwardRef((props: CommonContextProps, ref) => {
   }))
   useEffect(() => {
     if (!candlestickRef.current) {
+      const validProps = {}
+      propsToUpdate.forEach(key => {
+        if (props[key] !== undefined) {
+          validProps[key] = props[key]
+        }
+      })
       candlestickRef.current = new CandlestickPanel({
         container: containerRef.current as any,
+        ...validProps,
       })
+      candlestickRef.current.update()
+    } else {
       applyNodeProps(candlestickRef.current, props)
     }
   })
