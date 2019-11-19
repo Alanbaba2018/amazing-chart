@@ -35,6 +35,27 @@ export default function App() {
     //   const item = JSON.parse(evt.data)
     //   candlestick.addOrUpdateLastData(item.data.k)
     // }
+    const handleOrientationChange = () => {
+      console.log(window.innerWidth, window.innerHeight)
+      setTimeout(() => {
+        console.log(window.innerWidth, window.innerHeight)
+        candlestick.resize()
+      }, 2000)
+    }
+    const screenDirection = window.matchMedia('(orientation: portrait)')
+    screenDirection.addListener(handleOrientationChange)
+    // const rotate = () => {
+    //   candlestick.resize()
+    //   setTimeout(() => {
+
+    //   })
+    //   console.log(window.innerWidth, window.innerHeight)
+    // }
+    // window.addEventListener('orientationchange', rotate)
+    return () => {
+      // window.removeEventListener('orientationchange', rotate)
+      screenDirection.removeListener(handleOrientationChange)
+    }
   })
   return (
     <div className="App">
