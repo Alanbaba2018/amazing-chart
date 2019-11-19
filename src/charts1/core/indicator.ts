@@ -373,7 +373,7 @@ const KDJ: IndicatorBase = {
 // }
 
 // export { EMA, MACD, SMA, MOMENTUM, ATR, BOLL, VOL }
-const module = {
+const modules = {
   VOL,
   SMA,
   EMA,
@@ -383,4 +383,4 @@ const module = {
   BOLL,
   KDJ,
 }
-export default module
+export default modules

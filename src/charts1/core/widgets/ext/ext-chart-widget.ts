@@ -10,12 +10,6 @@ export default class ExtChartWidget extends BaseChartWidget {
 
   public weight: number = 0.3
 
-  constructor() {
-    super()
-    const isMobile = this.getAttr('isMobile')
-    this.setAttr('showClose', !isMobile)
-  }
-
   public render(drawMode: DrawMode) {
     const root = this.getRoot()
     const parent = this.getParent() as IPanel
@@ -38,7 +32,7 @@ export default class ExtChartWidget extends BaseChartWidget {
         strokeStyle: ColorMap.LightGray,
       })
       this.renderer.drawTitle(frameCtx, title, { x: 10, y: -this.bound.height + 10 })
-      const isShowClose = this.getAttr('showClose')
+      const isShowClose = parent.getAttr('isShowClose')
       isShowClose && this._drawCloseIcon(frameCtx)
     }
     this._renderIndicatorCharts(sceneCtx)

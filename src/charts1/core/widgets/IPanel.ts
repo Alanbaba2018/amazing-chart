@@ -74,6 +74,9 @@ export default class IPanel extends IBound {
     this.setAttrs(options)
     this._panelType = panelType
     this.setAttrs({ ...options, ...this.defaultConfig })
+    if (this.getAttr('isMobile')) {
+      this.setAttr('isShowClose', false)
+    }
     this._initWidgets()
     this._initEvents()
   }
@@ -346,7 +349,8 @@ export default class IPanel extends IBound {
 
   private _initEvents() {
     this.on('mousemove', this._onmousemove.bind(this))
-    this.on('click', this._onclick.bind(this))
+    const isShowClose = this.getAttr('isShowClose')
+    isShowClose && this.on('click', this._onclick.bind(this))
   }
 
   private _onclick(evt: CommonObject) {
