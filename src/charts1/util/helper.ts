@@ -63,7 +63,7 @@ export function toFloat(v: number, decimals: number = 2): number {
   return Number(v.toFixed(decimals))
 }
 
-export function geElementOffsetFromParent(e: MouseEvent): Point {
+export function geElementOffsetFromParent(e: any): Point {
   const element: HTMLElement = e.target as HTMLElement
   const { clientX, clientY } = e
   const boundRect = element.getBoundingClientRect()

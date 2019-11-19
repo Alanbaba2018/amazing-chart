@@ -1,6 +1,6 @@
 import IWidget from './iWidget'
 import { CommonObject, TickData } from '../../typeof/type'
-import { setElementStyle, setCanvasContextStyle, formatTime, isZero } from '../../util/helper'
+import { setElementStyle, setCanvasContextStyle, formatTime } from '../../util/helper'
 import Canvas from '../canvas'
 import TimeAxis from '../../model/time-axis'
 import IPanel from './IPanel'
@@ -94,11 +94,35 @@ export default abstract class BaseChartWidget extends IWidget {
   }
 
   private onmousedown(evt: any) {
+    const _evt = evt.originEvent as TouchEvent
+    if (_evt.touches && _evt.touches.length === 2) {
+      this.onmousescale(evt)
+      return
+    }
     let { x: startX } = evt.point
     this.on('mousemove.mousedown', (e: any) => {
       const { x: moveX } = e.point
       this.getRoot().shiftTimeLine(startX - moveX)
       startX = moveX
+    })
+    this.on('mouseup.mousedown', this.clearDragEvent)
+  }
+
+  private onmousescale(evt: any) {
+    const parent = this.getRoot()
+    const timeAxis = parent.getXAxis()
+    const { clientX, clientX1 } = evt
+    let dis1 = Math.abs(clientX - clientX1)
+    const centerTime = timeAxis.getValueOfCoord((clientX1 + clientX) / 2)
+    this.on('mousemove.mousedown', (e: any) => {
+      const { clientX: mClientX, clientX1: mClientX1 } = e
+      const dis2 = Math.abs(mClientX - mClientX1)
+      if (dis2 > dis1) {
+        parent.zoomIn(centerTime)
+      } else {
+        parent.zoomOut(centerTime)
+      }
+      dis1 = dis2
     })
     this.on('mouseup.mousedown', this.clearDragEvent)
   }
@@ -110,32 +134,13 @@ export default abstract class BaseChartWidget extends IWidget {
     } = data
     const parent = this.getRoot()
     const timeAxis = parent.getXAxis() as TimeAxis
-    const oldScaleCoeff = timeAxis.getCurrentScaleCoeff()
     const timeValue = timeAxis.getValueOfCoord(point.x)
-    const { scaleRatio } = parent.getAttr('xAxis')
     // deltaY > 0 ? 1.05 : 0.95;
     // zoomIn and zoomOut should be reciprocal relationship
-    const coeff = deltaY > 0 ? 1 + scaleRatio : 1 / (1 + scaleRatio)
-    timeAxis.scaleAroundTimestamp(timeValue, coeff)
-    const fullTimeExtent = parent.getTimeExtent()
-    const timeRange = timeAxis.domainRange
-    const currentInterval = timeRange.getInterval()
-    // some border condition should be limited
-    if (timeRange.getMinValue() > fullTimeExtent[1]) {
-      timeRange.setMinValue(fullTimeExtent[1]).setMaxValue(fullTimeExtent[1] + currentInterval)
-    }
-    if (timeRange.getMinValue() < fullTimeExtent[0] || timeRange.getMaxValue() < fullTimeExtent[0]) {
-      timeRange.setMinValue(fullTimeExtent[0]).setMaxValue(fullTimeExtent[0] + currentInterval)
-    }
-    // when scale origin maxTime more than current scale middle time
-    if (timeRange.getCenter() > fullTimeExtent[1]) {
-      timeRange
-        .setMinValue(fullTimeExtent[1] - currentInterval / 2)
-        .setMaxValue(fullTimeExtent[1] + currentInterval / 2)
-    }
-    const newScaleCoeff = timeAxis.getCurrentScaleCoeff()
-    if (!isZero(oldScaleCoeff - newScaleCoeff)) {
-      parent.updateTimeExtent()
+    if (deltaY > 0) {
+      parent.zoomIn(timeValue)
+    } else {
+      parent.zoomOut(timeValue)
     }
   }
 

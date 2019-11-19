@@ -12,7 +12,6 @@ import Canvas from './canvas'
 import {
   PanelOptions,
   CandlestickItem,
-  Point,
   CommonKeys,
   PanelType,
   IndicatorType,
@@ -20,7 +19,7 @@ import {
   CommonObject,
 } from '../typeof/type'
 import { RegisterEvents } from '../typeof/constant'
-import { createCanvasElement, geElementOffsetFromParent, setElementStyle } from '../util/helper'
+import { createCanvasElement, geElementOffsetFromParent, setElementStyle, isZero } from '../util/helper'
 import CandlestickOptions from './options'
 import Indicator from './indicator'
 import { isString } from '../util/type-check'
@@ -229,7 +228,8 @@ export default class Candlestick extends BaseView {
       const timeDomain = this._xAxis.domainRange
       const centerTime = (timeDomain.getMinValue() + timeDomain.getMaxValue()) / 2
       this.updateContainerSize()
-      this.setAxis(centerTime)
+      // to keep center time unchang
+      this.setTimeAxis(centerTime)
       this.setVisibleViewHeight()
       this.resizeAllPanelBound()
     }
@@ -288,7 +288,7 @@ export default class Candlestick extends BaseView {
     return [Math.min(...values), Math.max(...values)]
   }
 
-  public setAxis(centerTime?: number) {
+  public setTimeAxis(centerTime?: number) {
     const { yAxis, margin, width } = this.getConfig()
     const viewWidth = width - yAxis.width - margin.left - margin.right
     const xExtent = this.getTimeExtent()
@@ -403,6 +403,20 @@ export default class Candlestick extends BaseView {
     this.updateTimeExtent()
   }
 
+  public zoomIn(timeValue?: number) {
+    if (timeValue === undefined) {
+      timeValue = this._xAxis.domainRange.getCenter()
+    }
+    this.zoom(timeValue, 1)
+  }
+
+  public zoomOut(timeValue?: number) {
+    if (timeValue === undefined) {
+      timeValue = this._xAxis.domainRange.getCenter()
+    }
+    this.zoom(timeValue, -1)
+  }
+
   public addOrUpdateLastData(item: { t: number; o: string; h: string; c: string; l: string; v: string }) {
     const seriesData = this.getAttr('seriesData')
     const addItem = { time: item.t, open: item.o, close: item.c, high: item.h, low: item.l, volume: item.v }
@@ -411,14 +425,12 @@ export default class Candlestick extends BaseView {
     if (lastItem.time !== addItem.time) {
       seriesData.push(addItem)
       if (this._xAxis.domainRange.contain(addItem.time)) {
-        // this.calculateIndicators()
         this.shiftTimeLineByTime(this._xAxis.getUnitTimeValue())
         return
       }
     } else {
       Object.assign(lastItem, addItem)
     }
-    // this.calculateIndicators()
     this.updateYExtend()
     this.update()
   }
@@ -443,16 +455,6 @@ export default class Candlestick extends BaseView {
         panel.updateYExtend()
       }
     })
-  }
-
-  public calculateIndicators() {
-    const seriesData = this.getSeriesData()
-    if (this._indicatorViews.size > 0) {
-      const indicatorViews = Array.from(this._indicatorViews.values())
-      indicatorViews.forEach(view => {
-        Indicator[view.type] && Indicator[view.type].calculate(seriesData, view.params)
-      })
-    }
   }
 
   public closeIndicatorPanel(panel: IPanel | string) {
@@ -515,13 +517,43 @@ export default class Candlestick extends BaseView {
       const extPanel = new IPanel(PanelType.EXT, { indicatorType: type, params, styles })
       const gapWidget = new GapWidget(frontPanel, extPanel)
       this.addPanels([gapWidget, extPanel])
-      // this.calculateIndicators()
       this.updatePanelBound()
     }
     this.update()
   }
 
   public destroy() {}
+
+  private zoom(timeValue: number, level: number) {
+    if (level !== 1 && level !== -1) return
+    const { scaleRatio } = this.getAttr('xAxis')
+    // deltaY > 0 ? 1.05 : 0.95;
+    // zoomIn and zoomOut should be reciprocal relationship
+    const coeff: number = (1 + scaleRatio) ** level
+    const timeAxis = this._xAxis as TimeAxis
+    const oldScaleCoeff = timeAxis.getCurrentScaleCoeff()
+    timeAxis.scaleAroundTimestamp(timeValue, coeff)
+    const fullTimeExtent = this.getTimeExtent()
+    const timeRange = timeAxis.domainRange
+    const currentInterval = timeRange.getInterval()
+    // some border condition should be limited
+    if (timeRange.getMinValue() > fullTimeExtent[1]) {
+      timeRange.setMinValue(fullTimeExtent[1]).setMaxValue(fullTimeExtent[1] + currentInterval)
+    }
+    if (timeRange.getMinValue() < fullTimeExtent[0] || timeRange.getMaxValue() < fullTimeExtent[0]) {
+      timeRange.setMinValue(fullTimeExtent[0]).setMaxValue(fullTimeExtent[0] + currentInterval)
+    }
+    // when scale origin maxTime more than current scale middle time
+    if (timeRange.getCenter() > fullTimeExtent[1]) {
+      timeRange
+        .setMinValue(fullTimeExtent[1] - currentInterval / 2)
+        .setMaxValue(fullTimeExtent[1] + currentInterval / 2)
+    }
+    const newScaleCoeff = timeAxis.getCurrentScaleCoeff()
+    if (!isZero(oldScaleCoeff - newScaleCoeff)) {
+      this.updateTimeExtent()
+    }
+  }
 
   private setVisibleViewHeight() {
     const { margin, timeline, xAxis, height } = this.getConfig()
@@ -532,8 +564,7 @@ export default class Candlestick extends BaseView {
     const seriesData = this.getSeriesData()
     if (seriesData.length > 0) {
       seriesData.forEach(this.formatItem)
-      // this.calculateIndicators()
-      this.setAxis()
+      this.setTimeAxis()
       this.initPanelYAxis()
     }
   }
@@ -551,7 +582,7 @@ export default class Candlestick extends BaseView {
     EventProxy.on(window, 'resize', this.resize.bind(this))
   }
 
-  private eventHandler(eventType: string, e: any) {
+  private eventHandler(eventType: string, evt: { originEvent: Event; [k: string]: any }) {
     if (!this._xAxis) return
     const eventActions = {
       click: this.onclick,
@@ -561,13 +592,15 @@ export default class Candlestick extends BaseView {
       mouseup: this.onmouseup,
       mouseout: this.onmouseout,
     }
-    const point: Point = geElementOffsetFromParent(e)
-    const evt = { point, originEvent: e }
+    const { originEvent } = evt
+    if (evt.clientX !== undefined && evt.clientY !== undefined) {
+      evt.point = geElementOffsetFromParent({ ...evt, target: originEvent.target })
+    }
     if ((eventActions as CommonObject)[eventType]) {
       ;(eventActions as CommonObject)[eventType].call(this, evt)
     }
-    e.originEvent ? e.originEvent.stopPropagation() : e.stopPropagation()
-    e.originEvent ? e.originEvent.preventDefault() : e.preventDefault()
+    originEvent.stopPropagation()
+    originEvent.preventDefault()
   }
 
   private onclick(evt: CommonObject) {

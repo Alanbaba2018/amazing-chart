@@ -81,10 +81,11 @@ export default class IPanel extends IBound {
   public setYAxis() {
     const yExtent = this._getYExtent()
     const isScaleCenter = this.getAttr('isScaleCenter')
+    const padding: number = 5
     if (isScaleCenter) {
-      this._yAxis = new Axis(yExtent, [0, this.bound.height])
+      this._yAxis = new Axis(yExtent, [padding, this.bound.height - padding])
     } else {
-      this._yAxis = new FixAxis([0, yExtent[1]], [0, this.bound.height])
+      this._yAxis = new FixAxis([0, yExtent[1]], [padding, this.bound.height - padding])
     }
   }
 
