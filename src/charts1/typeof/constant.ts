@@ -1,4 +1,4 @@
-import { TimeScaleType, ViewType } from './type'
+import { TimeScaleType, IndicatorType } from './type'
 
 export const GapWidgetHeight: number = 10
 
@@ -86,4 +86,4 @@ export const CanvasContextProps: Array<string | number> = [
   'textBaseline',
 ]
 
-export const AddViewTypes = [ViewType.MACD, ViewType.ATR, ViewType.VOL, ViewType.MOMENTUM]
+export const AddViewTypes = [IndicatorType.MACD, IndicatorType.ATR, IndicatorType.VOL, IndicatorType.MOMENTUM]

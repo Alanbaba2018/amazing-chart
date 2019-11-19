@@ -7,123 +7,123 @@ import { WEMA } from '../moving_averages/WEMA'
 
 export class ADXInput extends IndicatorInput {
   high: number[]
+
   low: number[]
+
   close: number[]
+
   period: number
 }
 
 export class ADXOutput extends IndicatorInput {
   adx: number
+
   pdi: number
+
   mdi: number
 }
 
 export class ADX extends Indicator {
   result: ADXOutput[]
+
   generator: IterableIterator<ADXOutput | undefined>
+
   constructor(input: ADXInput) {
     super(input)
-    var lows = input.low
-    var highs = input.high
-    var closes = input.close
-    var period = input.period
-    var format = this.format
+    let lows = input.low
+    let highs = input.high
+    let closes = input.close
+    let { period } = input
 
-    var plusDM = new PDM({
+    let plusDM = new PDM({
       high: [],
       low: [],
     })
 
-    var minusDM = new MDM({
+    let minusDM = new MDM({
       high: [],
       low: [],
     })
 
-    var emaPDM = new WilderSmoothing({
-      period: period,
+    let emaPDM = new WilderSmoothing({
+      period,
       values: [],
-      format: v => {
-        return v
-      },
+      format: v => v,
     })
-    var emaMDM = new WilderSmoothing({
-      period: period,
+    let emaMDM = new WilderSmoothing({
+      period,
       values: [],
-      format: v => {
-        return v
-      },
+      format: v => v,
     })
-    var emaTR = new WilderSmoothing({
-      period: period,
+    let emaTR = new WilderSmoothing({
+      period,
       values: [],
-      format: v => {
-        return v
-      },
+      format: v => v,
     })
-    var emaDX = new WEMA({
-      period: period,
+    let emaDX = new WEMA({
+      period,
       values: [],
-      format: v => {
-        return v
-      },
+      format: v => v,
     })
 
-    var tr = new TrueRange({
+    let tr = new TrueRange({
       low: [],
       high: [],
       close: [],
     })
 
     if (!(lows.length === highs.length && highs.length === closes.length)) {
-      throw 'Inputs(low,high, close) not of equal size'
+      throw new Error('Inputs(low,high, close) not of equal size')
     }
 
     this.result = []
-    ADXOutput
-    this.generator = (function*() {
-      var tick = yield
-      var lastPDI, lastMDI, lastDX, smoothedDX
+    this.generator = (function* g() {
+      let tick = yield
+      let lastPDI
+      let lastMDI
+      let lastDX
+      let smoothedDX
       while (true) {
         let calcTr = tr.nextValue(tick)
         let calcPDM = plusDM.nextValue(tick)
         let calcMDM = minusDM.nextValue(tick)
         if (calcTr === undefined) {
           tick = yield
-          continue
+        } else {
+          let lastATR = emaTR.nextValue(calcTr)
+          // @ts-ignore
+          let lastAPDM = emaPDM.nextValue(calcPDM)
+          // @ts-ignore
+          let lastAMDM = emaMDM.nextValue(calcMDM)
+          if (lastATR !== undefined && lastAPDM !== undefined && lastAMDM !== undefined) {
+            lastPDI = (lastAPDM * 100) / lastATR
+            lastMDI = (lastAMDM * 100) / lastATR
+            let diDiff = Math.abs(lastPDI - lastMDI)
+            let diSum = lastPDI + lastMDI
+            lastDX = (diDiff / diSum) * 100
+            smoothedDX = emaDX.nextValue(lastDX)
+          }
+          // eslint-disable-next-line
+          tick = yield { adx: smoothedDX, pdi: lastPDI, mdi: lastMDI }
         }
-        let lastATR = emaTR.nextValue(calcTr)
-        //@ts-ignore
-        let lastAPDM = emaPDM.nextValue(calcPDM)
-        //@ts-ignore
-        let lastAMDM = emaMDM.nextValue(calcMDM)
-        if (lastATR != undefined && lastAPDM != undefined && lastAMDM != undefined) {
-          lastPDI = (lastAPDM * 100) / lastATR
-          lastMDI = (lastAMDM * 100) / lastATR
-          let diDiff = Math.abs(lastPDI - lastMDI)
-          let diSum = lastPDI + lastMDI
-          lastDX = (diDiff / diSum) * 100
-          smoothedDX = emaDX.nextValue(lastDX)
-          // console.log(tick.high.toFixed(2), tick.low.toFixed(2), tick.close.toFixed(2) , calcTr.toFixed(2), calcPDM.toFixed(2), calcMDM.toFixed(2), lastATR.toFixed(2), lastAPDM.toFixed(2), lastAMDM.toFixed(2), lastPDI.toFixed(2), lastMDI.toFixed(2), diDiff.toFixed(2), diSum.toFixed(2), lastDX.toFixed(2));
-        }
-        tick = yield { adx: smoothedDX, pdi: lastPDI, mdi: lastMDI }
       }
     })()
 
     this.generator.next()
 
-    //@ts-ignore
+    // @ts-ignore
     lows.forEach((tick, index) => {
-      //@ts-ignore
-      var result = this.generator.next({
+      // @ts-ignore
+      let result = this.generator.next({
         high: highs[index],
         low: lows[index],
         close: closes[index],
       })
-      if (result.value != undefined && result.value.adx != undefined) {
+      if (result.value !== undefined && result.value.adx !== undefined) {
         this.result.push({
-          adx: format(result.value.adx),
-          pdi: format(result.value.pdi),
-          mdi: format(result.value.mdi),
+          adx: this.format(result.value.adx),
+          pdi: this.format(result.value.pdi),
+          mdi: this.format(result.value.mdi),
         })
       }
     })
@@ -131,11 +131,11 @@ export class ADX extends Indicator {
 
   static calculate = adx
 
-  //@ts-ignore
+  // @ts-ignore
   nextValue(price: number): ADXOutput | undefined {
-    //@ts-ignore
+    // @ts-ignore
     let result = this.generator.next(price).value
-    if (result != undefined && result.adx != undefined) {
+    if (result !== undefined && result.adx !== undefined) {
       return { adx: this.format(result.adx), pdi: this.format(result.pdi), mdi: this.format(result.mdi) }
     }
   }
@@ -143,7 +143,7 @@ export class ADX extends Indicator {
 
 export function adx(input: ADXInput): ADXOutput[] {
   Indicator.reverseInputs(input)
-  var result = new ADX(input).result
+  let { result } = new ADX(input)
   if (input.reversedInput) {
     result.reverse()
   }

@@ -1,13 +1,10 @@
-/**
- * Created by AAravindan on 5/5/16.
- */
-
 import { Indicator, IndicatorInput } from '../indicator'
 import { AverageGain } from '../Utils/AverageGain'
 import { AverageLoss } from '../Utils/AverageLoss'
 
 export class RSIInput extends IndicatorInput {
   period: number
+
   values: number[]
 }
 
@@ -16,15 +13,16 @@ export class RSI extends Indicator {
 
   constructor(input: RSIInput) {
     super(input)
+    const { period, values } = input
 
-    var period = input.period
-    var values = input.values
-
-    var GainProvider = new AverageGain({ period: period, values: [] })
-    var LossProvider = new AverageLoss({ period: period, values: [] })
-    this.generator = (function*() {
-      var current = yield
-      var lastAvgGain, lastAvgLoss, RS, currentRSI
+    let GainProvider = new AverageGain({ period, values: [] })
+    let LossProvider = new AverageLoss({ period, values: [] })
+    this.generator = (function* g() {
+      let current = yield
+      let lastAvgGain
+      let lastAvgLoss
+      let RS
+      let currentRSI
       while (true) {
         lastAvgGain = GainProvider.nextValue(current)
         lastAvgLoss = LossProvider.nextValue(current)
@@ -48,7 +46,7 @@ export class RSI extends Indicator {
     this.result = []
 
     values.forEach((tick: any) => {
-      var result = this.generator.next(tick)
+      let result = this.generator.next(tick)
       if (result.value !== undefined) {
         this.result.push(result.value)
       }
@@ -58,14 +56,14 @@ export class RSI extends Indicator {
   static calculate = rsi
 
   nextValue(price: number): number | undefined {
-    //@ts-ignore
+    // @ts-ignore
     return this.generator.next(price).value
   }
 }
 
 export function rsi(input: RSIInput): number[] {
   Indicator.reverseInputs(input)
-  var result = new RSI(input).result
+  let { result } = new RSI(input)
   if (input.reversedInput) {
     result.reverse()
   }

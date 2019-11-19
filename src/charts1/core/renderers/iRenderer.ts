@@ -104,7 +104,7 @@ export default abstract class IRenderer {
     ctx.stroke()
   }
 
-  public drawLineChart = (ctx: CanvasRenderingContext2D, points: Point[]) => {
+  public drawPolyline = (ctx: CanvasRenderingContext2D, points: Point[]) => {
     ctx.beginPath()
     Canvas.drawLines(ctx, points)
     ctx.stroke()

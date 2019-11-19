@@ -4,25 +4,37 @@ import { ROC } from './ROC'
 
 export class KSTInput extends IndicatorInput {
   ROCPer1: number
+
   ROCPer2: number
+
   ROCPer3: number
+
   ROCPer4: number
+
   SMAROCPer1: number
+
   SMAROCPer2: number
+
   SMAROCPer3: number
+
   SMAROCPer4: number
+
   signalPeriod: number
+
   values: number[]
 }
 
 export class KSTOutput {
   kst: number
+
   signal: number
 }
 
 export class KST extends Indicator {
   result: KSTOutput[]
+
   generator: IterableIterator<KSTOutput | undefined>
+
   constructor(input: KSTInput) {
     super(input)
     let priceArray = input.values
@@ -36,7 +48,7 @@ export class KST extends Indicator {
     let smaPer3 = input.SMAROCPer3
     let smaPer4 = input.SMAROCPer4
 
-    let signalPeriod = input.signalPeriod
+    let { signalPeriod } = input
 
     let roc1 = new ROC({ period: rocPer1, values: [] })
     let roc2 = new ROC({ period: rocPer2, values: [] })
@@ -46,47 +58,36 @@ export class KST extends Indicator {
     let sma1 = new SMA({
       period: smaPer1,
       values: [],
-      format: v => {
-        return v
-      },
     })
     let sma2 = new SMA({
       period: smaPer2,
       values: [],
-      format: v => {
-        return v
-      },
     })
     let sma3 = new SMA({
       period: smaPer3,
       values: [],
-      format: v => {
-        return v
-      },
     })
     let sma4 = new SMA({
       period: smaPer4,
       values: [],
-      format: v => {
-        return v
-      },
     })
     let signalSMA = new SMA({
       period: signalPeriod,
       values: [],
-      format: v => {
-        return v
-      },
     })
-    var format = this.format
     this.result = []
 
     let firstResult = Math.max(rocPer1 + smaPer1, rocPer2 + smaPer2, rocPer3 + smaPer3, rocPer4 + smaPer4)
-    this.generator = (function*(): IterableIterator<KSTOutput | undefined> {
+    this.generator = (function* g(): IterableIterator<KSTOutput | undefined> {
       let index = 1
       let tick: any = yield
       let kst
-      let RCMA1, RCMA2, RCMA3, RCMA4, signal, result
+      let RCMA1
+      let RCMA2
+      let RCMA3
+      let RCMA4
+      let signal
+      let result
       while (true) {
         let roc1Result = roc1.nextValue(tick)
         let roc2Result = roc2.nextValue(tick)
@@ -105,8 +106,8 @@ export class KST extends Indicator {
         result =
           kst !== undefined
             ? {
-                kst: format(kst),
-                signal: signal ? format(signal) : undefined,
+                kst,
+                signal,
               }
             : undefined
         tick = yield result
@@ -117,26 +118,24 @@ export class KST extends Indicator {
 
     priceArray.forEach((tick: any) => {
       let result = this.generator.next(tick)
-      if (result.value != undefined) {
+      if (result.value !== undefined) {
         this.result.push(result.value)
       }
     })
   }
 
-  static calculate = kst
+  static calculate = (input: KSTInput): KSTOutput[] => {
+    Indicator.reverseInputs(input)
+    let { result } = new KST(input)
+    if (input.reversedInput) {
+      result.reverse()
+    }
+    Indicator.reverseInputs(input)
+    return result
+  }
 
   nextValue(price: number) {
     let nextResult = this.generator.next(price as any)
-    if (nextResult.value != undefined) return nextResult.value
+    if (nextResult.value !== undefined) return nextResult.value
   }
-}
-
-export function kst(input: KSTInput): KSTOutput[] {
-  Indicator.reverseInputs(input)
-  var result = new KST(input).result
-  if (input.reversedInput) {
-    result.reverse()
-  }
-  Indicator.reverseInputs(input)
-  return result
 }

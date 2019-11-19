@@ -1,9 +1,9 @@
 import BaseChartWidget from '../base-chart-widget'
 import ExtChartRenderer from '../../renderers/ext/ext-chart-renderer'
 import { setCanvasContextStyle } from '../../../util/helper'
-import { ColorMap, TextBaseLine, ViewType, DrawMode } from '../../../typeof/type'
+import { ColorMap, TextBaseLine, DrawMode } from '../../../typeof/type'
 import IPanel from '../IPanel'
-import * as Indicator from '../../indicator'
+import Indicator from '../../indicator'
 
 export default class ExtChartWidget extends BaseChartWidget {
   public renderer: ExtChartRenderer = new ExtChartRenderer()
@@ -18,7 +18,7 @@ export default class ExtChartWidget extends BaseChartWidget {
   public render(drawMode: DrawMode) {
     const root = this.getRoot()
     const parent = this.getParent() as IPanel
-    const { title } = parent
+    const title = parent.getAttr('title')
     const frameCtx = root.getFrameContext()
     const hitCtx = root.getHitContext()
     const sceneCtx = root.getContext()
@@ -40,7 +40,7 @@ export default class ExtChartWidget extends BaseChartWidget {
       const isShowClose = this.getAttr('showClose')
       isShowClose && this._drawCloseIcon(frameCtx)
     }
-    this._drawSpecialChart(parent.viewName, sceneCtx)
+    this._renderIndicatorCharts(sceneCtx)
     this.restoreCtxs(ctxs)
   }
 
@@ -50,57 +50,18 @@ export default class ExtChartWidget extends BaseChartWidget {
     this.renderer.drawCloseIcon(frameCtx, closeIconBound)
   }
 
-  private _drawSpecialChart(viewType: ViewType, sceneCtx: CanvasRenderingContext2D) {
-    const actions = {
-      [ViewType.MACD]: this.drawMacd,
-      [ViewType.ATR]: this.drawATR,
-      [ViewType.VOL]: this.drawVOL,
-      [ViewType.MOMENTUM]: this.drawMOMENTUM,
-    }
-    if (actions[viewType]) {
-      actions[viewType].call(this, sceneCtx)
-    }
-  }
-
-  public drawMacd(sceneCtx: CanvasRenderingContext2D) {
-    const parent = this.getParent() as IPanel
-    const { MACD } = Indicator
-    const oscBarDatas = parent.getCustomBarDatas(MACD.oscillatorKey)
-    this.renderer.drawCandleBar(sceneCtx, oscBarDatas)
-    setCanvasContextStyle(sceneCtx, { strokeStyle: ColorMap.LightGray })
-    const macdLineDatas = parent.getLineDatas(MACD.key)
-    this.renderer.drawLineChart(sceneCtx, macdLineDatas)
-    const signalLineDatas = parent.getLineDatas(MACD.signalKey)
-    setCanvasContextStyle(sceneCtx, { strokeStyle: ColorMap.CandleGreen })
-    this.renderer.drawLineChart(sceneCtx, signalLineDatas)
-  }
-
-  public drawATR(sceneCtx: CanvasRenderingContext2D) {
-    const parent = this.getParent() as IPanel
-    const { ATR } = Indicator
-    const { periods = [] } = parent.getAttr('params')
-    setCanvasContextStyle(sceneCtx, { strokeStyle: ColorMap.LightGray })
-    periods.forEach(period => {
-      const lineDatas = parent.getLineDatas(`${ATR.key}${period}`)
-      this.renderer.drawLineChart(sceneCtx, lineDatas)
+  private _renderIndicatorCharts(ctx: CanvasRenderingContext2D) {
+    const root = this.getRoot()
+    const { indicatorViews } = root
+    const seriesData = root.getSeriesData()
+    indicatorViews.forEach(view => {
+      if (!view.isHistBase) {
+        const curIndicator = Indicator[view.type]
+        if (curIndicator) {
+          const results = curIndicator.getResult(seriesData, view.params)
+          results.forEach(this.plotChart.bind(this, ctx))
+        }
+      }
     })
-  }
-
-  public drawVOL(sceneCtx: CanvasRenderingContext2D) {
-    const parent = this.getParent() as IPanel
-    const { up: upDatas, down: downDatas } = parent.getStandardBarDatas('volume')
-    setCanvasContextStyle(sceneCtx, { fillStyle: ColorMap.CandleRed })
-    this.renderer.drawBars(sceneCtx, downDatas)
-    setCanvasContextStyle(sceneCtx, { fillStyle: ColorMap.CandleGreen })
-    this.renderer.drawBars(sceneCtx, upDatas)
-  }
-
-  public drawMOMENTUM(sceneCtx: CanvasRenderingContext2D) {
-    const parent = this.getParent() as IPanel
-    const { MOMENTUM } = Indicator
-    const { periods = [] } = parent.getAttr('params')
-    const styles = parent.getAttr('styles')
-    const lines = periods.map(period => parent.getLineDatas(`${MOMENTUM.key}${period}`))
-    this.renderer.drawMultiLines(sceneCtx, lines, styles.colors)
   }
 }

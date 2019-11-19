@@ -6,35 +6,39 @@ import { CandleData } from '../StockData'
 
 export class ADLInput extends IndicatorInput {
   high: number[]
+
   low: number[]
+
   close: number[]
+
   volume: number[]
 }
 
 export class ADL extends Indicator {
   generator: IterableIterator<number | undefined>
+
   constructor(input: ADLInput) {
     super(input)
-    var highs = input.high
-    var lows = input.low
-    var closes = input.close
-    var volumes = input.volume
+    let highs = input.high
+    let lows = input.low
+    let closes = input.close
+    let volumes = input.volume
 
     if (!(lows.length === highs.length && highs.length === closes.length && highs.length === volumes.length)) {
-      throw 'Inputs(low,high, close, volumes) not of equal size'
+      throw new Error('Inputs(low,high, close, volumes) not of equal size')
     }
 
     this.result = []
 
-    this.generator = (function*() {
-      var result = 0
-      var tick
+    this.generator = (function* g() {
+      let result = 0
+      let tick
       tick = yield
       while (true) {
         let moneyFlowMultiplier = (tick.close - tick.low - (tick.high - tick.close)) / (tick.high - tick.low)
         moneyFlowMultiplier = isNaN(moneyFlowMultiplier) ? 1 : moneyFlowMultiplier
         let moneyFlowVolume = moneyFlowMultiplier * tick.volume
-        result = result + moneyFlowVolume
+        result += moneyFlowVolume
         tick = yield Math.round(result)
       }
     })()
@@ -42,15 +46,15 @@ export class ADL extends Indicator {
     this.generator.next()
 
     highs.forEach((tickHigh, index) => {
-      var tickInput = {
+      let tickInput = {
         high: tickHigh,
         low: lows[index],
         close: closes[index],
         volume: volumes[index],
       }
-      //@ts-ignore
-      var result = this.generator.next(tickInput)
-      if (result.value != undefined) {
+      // @ts-ignore
+      let result = this.generator.next(tickInput)
+      if (result.value !== undefined) {
         this.result.push(result.value)
       }
     })
@@ -59,14 +63,14 @@ export class ADL extends Indicator {
   static calculate = adl
 
   nextValue(price: CandleData): number | undefined {
-    //@ts-ignore
+    // @ts-ignore
     return this.generator.next(price).value
   }
 }
 
 export function adl(input: ADLInput): number[] {
   Indicator.reverseInputs(input)
-  var result = new ADL(input).result
+  const { result } = new ADL(input)
   if (input.reversedInput) {
     result.reverse()
   }

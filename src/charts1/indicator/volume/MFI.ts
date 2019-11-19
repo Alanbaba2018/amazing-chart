@@ -8,53 +8,58 @@ import FixedSizeLinkedList from '../Utils/FixedSizeLinkedList'
 
 export class MFIInput extends IndicatorInput {
   high: number[]
+
   low: number[]
+
   close: number[]
+
   volume: number[]
+
   period: number
 }
 
 export class MFI extends Indicator {
   generator: IterableIterator<number | undefined>
+
   constructor(input: MFIInput) {
     super(input)
-    var highs = input.high
-    var lows = input.low
-    var closes = input.close
-    var volumes = input.volume
-    var period = input.period
+    let highs = input.high
+    let lows = input.low
+    let closes = input.close
+    let volumes = input.volume
+    let { period } = input
 
-    var typicalPrice = new TypicalPrice({ low: [], high: [], close: [] })
+    let typicalPrice = new TypicalPrice({ low: [], high: [], close: [] })
 
-    var positiveFlow = new FixedSizeLinkedList(period, false, false, true)
-    var negativeFlow = new FixedSizeLinkedList(period, false, false, true)
+    let positiveFlow = new FixedSizeLinkedList(period, false, false, true)
+    let negativeFlow = new FixedSizeLinkedList(period, false, false, true)
 
     if (!(lows.length === highs.length && highs.length === closes.length && highs.length === volumes.length)) {
-      throw 'Inputs(low,high, close, volumes) not of equal size'
+      throw new Error('Inputs(low,high, close, volumes) not of equal size')
     }
 
     this.result = []
 
-    this.generator = (function*() {
-      var result
-      var tick
-      var positiveFlowForPeriod
-      var rawMoneyFlow = 0
-      var moneyFlowRatio
-      var negativeFlowForPeriod
+    this.generator = (function* g() {
+      let result
+      let tick
+      let positiveFlowForPeriod
+      let rawMoneyFlow = 0
+      let moneyFlowRatio
+      let negativeFlowForPeriod
       let typicalPriceValue = null
       let prevousTypicalPrice = null
       tick = yield
       tick = yield
       while (true) {
-        var { high, low, close, volume } = tick
-        var positionMoney = 0
-        var negativeMoney = 0
-        //@ts-ignore
+        let { high, low, close, volume } = tick
+        let positionMoney = 0
+        let negativeMoney = 0
+        // @ts-ignore
         typicalPriceValue = typicalPrice.nextValue({ high, low, close })
-        //@ts-ignore
+        // @ts-ignore
         rawMoneyFlow = typicalPriceValue * volume
-        if (typicalPriceValue != null && prevousTypicalPrice != null) {
+        if (typicalPriceValue !== null && prevousTypicalPrice !== null) {
           typicalPriceValue > prevousTypicalPrice ? (positionMoney = rawMoneyFlow) : (negativeMoney = rawMoneyFlow)
           positiveFlow.push(positionMoney)
           negativeFlow.push(negativeMoney)
@@ -73,15 +78,15 @@ export class MFI extends Indicator {
     this.generator.next()
 
     highs.forEach((tickHigh, index) => {
-      var tickInput = {
+      let tickInput = {
         high: tickHigh,
         low: lows[index],
         close: closes[index],
         volume: volumes[index],
       }
-      //@ts-ignore
-      var result = this.generator.next(tickInput)
-      if (result.value != undefined) {
+      // @ts-ignore
+      let result = this.generator.next(tickInput)
+      if (result.value !== undefined) {
         this.result.push(parseFloat(result.value.toFixed(2)))
       }
     })
@@ -89,11 +94,11 @@ export class MFI extends Indicator {
 
   static calculate = mfi
 
-  //@ts-ignore
+  // @ts-ignore
   nextValue(price: CandleData): number | undefined {
-    //@ts-ignore
-    var result = this.generator.next(price)
-    if (result.value != undefined) {
+    // @ts-ignore
+    let result = this.generator.next(price)
+    if (result.value !== undefined) {
       return parseFloat(result.value.toFixed(2))
     }
   }
@@ -101,7 +106,7 @@ export class MFI extends Indicator {
 
 export function mfi(input: MFIInput): number[] {
   Indicator.reverseInputs(input)
-  var result = new MFI(input).result
+  let { result } = new MFI(input)
   if (input.reversedInput) {
     result.reverse()
   }

@@ -1,48 +1,44 @@
 import { IndicatorInput, Indicator } from '../indicator'
 import { SMA } from '../moving_averages/SMA'
-import LinkedList from '../Utils/FixedSizeLinkedList'
-/**
- * Created by AAravindan on 5/7/16.
- */
-'use strict'
+import LinkedList from './FixedSizeLinkedList'
 
 export class SDInput extends IndicatorInput {
   period: number
+
   values: number[]
 }
 
 export class SD extends Indicator {
   generator: IterableIterator<number | undefined>
+
   constructor(input: SDInput) {
     super(input)
-    var period = input.period
-    var priceArray = input.values
+    const { period } = input
+    let priceArray = input.values
 
-    var sma = new SMA({
-      period: period,
+    let sma = new SMA({
+      period,
       values: [],
-      format: (v: number) => {
-        return v
-      },
     })
 
     this.result = []
 
-    this.generator = (function*() {
-      var tick
-      var mean
-      var currentSet = new LinkedList(period)
+    this.generator = (function* g() {
+      let tick
+      let mean
+      let currentSet = new LinkedList(period)
       tick = yield
-      var sd
+      let sd: any
       while (true) {
         currentSet.push(tick)
         mean = sma.nextValue(tick)
         if (mean) {
           let sum = 0
-          //@ts-ignore
-          for (let x of currentSet.iterator()) {
-            sum = sum + Math.pow(x - mean, 2)
-          }
+          const list = currentSet.iterator()
+          // eslint-disable-next-line
+          list.forEach(cur => {
+            sum += (cur - mean) ** 2
+          })
           sd = Math.sqrt(sum / period)
         }
         tick = yield sd
@@ -52,30 +48,28 @@ export class SD extends Indicator {
     this.generator.next()
 
     priceArray.forEach(tick => {
-      //@ts-ignore
-      var result = this.generator.next(tick)
-      if (result.value != undefined) {
-        this.result.push(this.format(result.value))
+      // @ts-ignore
+      let result = this.generator.next(tick)
+      if (result.value !== undefined) {
+        this.result.push(result.value)
       }
     })
   }
 
-  static calculate = sd
+  static calculate = (input: SDInput): number[] => {
+    Indicator.reverseInputs(input)
+    let { result } = new SD(input)
+    if (input.reversedInput) {
+      result.reverse()
+    }
+    Indicator.reverseInputs(input)
+    return result
+  }
 
-  //@ts-ignore
+  // @ts-ignore
   nextValue(price: number): number | undefined {
-    //@ts-ignore
-    var nextResult = this.generator.next(price)
-    if (nextResult.value != undefined) return this.format(nextResult.value)
+    // @ts-ignore
+    let nextResult = this.generator.next(price)
+    if (nextResult.value !== undefined) return this.format(nextResult.value)
   }
-}
-
-export function sd(input: SDInput): number[] {
-  Indicator.reverseInputs(input)
-  var result = new SD(input).result
-  if (input.reversedInput) {
-    result.reverse()
-  }
-  Indicator.reverseInputs(input)
-  return result
 }

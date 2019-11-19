@@ -2,7 +2,7 @@ import BaseChartWidget from './base-chart-widget'
 import CandlestickRenderer from '../renderers/candlestick-renderer'
 import {
   Point,
-  ViewType,
+  // IndicatorType,
   CandlestickItem,
   CandlestickBar,
   Trend,
@@ -12,7 +12,7 @@ import {
   TextBaseLine,
 } from '../../typeof/type'
 import { setCanvasContextStyle } from '../../util/helper'
-import * as Indicator from '../indicator'
+import Indicator from '../indicator'
 import IPanel from './IPanel'
 import GraphHelper from '../graphHelper'
 import Canvas from '../canvas'
@@ -31,10 +31,10 @@ export default class CandlestickWidget extends BaseChartWidget {
     const ctxs = [sceneCtx]
     this.initialCtxs(ctxs)
     this.createClipBound(sceneCtx)
-    this.renderIndicatorChats(sceneCtx)
     const { xData, yData } = this.getXYTicksData()
     setCanvasContextStyle(sceneCtx, config.grid)
     this.renderer.drawGrid(sceneCtx, this.bound, xData, yData)
+    this.renderIndicatorChats(sceneCtx)
     this.renderer.draw(sceneCtx, this.getVisibleBars(), config)
     this.drawMaxAndMinArrows(sceneCtx)
     this.restoreCtxs(ctxs)
@@ -67,92 +67,101 @@ export default class CandlestickWidget extends BaseChartWidget {
   }
 
   private renderIndicatorChats(ctx: CanvasRenderingContext2D) {
-    const { indicatorViews } = this.getRoot()
+    const root = this.getRoot()
+    const { indicatorViews } = root
+    const seriesData = root.getSeriesData()
     indicatorViews.forEach(view => {
-      if (view.type === ViewType.EMA) {
-        const { params, styles = [] } = view
-        const lines = this.getEMALines(params.periods)
-        this.renderer.drawMultiLines(ctx, lines, styles.colors)
-      } else if (view.type === ViewType.BOLL) {
-        const { styles = [] } = view
-        const lines = this.getBollLines()
-        this.renderer.drawMultiLines(ctx, lines, styles.colors)
-      } else if (view.type === ViewType.SMA) {
-        const {
-          params: { periods = [] },
-          styles = [],
-        } = view
-        const lines = this.getSMALines(periods)
-        this.renderer.drawMultiLines(ctx, lines, styles.colors)
+      if (view.isHistBase) {
+        const curIndicator = Indicator[view.type]
+        if (curIndicator) {
+          const results = curIndicator.getResult(seriesData, view.params)
+          results.forEach(this.plotChart.bind(this, ctx))
+        }
       }
+      // if (view.type === IndicatorType.EMA) {
+      //   const { params, styles = [] } = view
+      //   const lines = this.getEMALines(params.periods)
+      //   this.renderer.drawMultiLines(ctx, lines, styles.colors)
+      // } else if (view.type === IndicatorType.BOLL) {
+      //   const { styles = [] } = view
+      //   const lines = this.getBollLines()
+      //   this.renderer.drawMultiLines(ctx, lines, styles.colors)
+      // } else if (view.type === IndicatorType.SMA) {
+      //   const {
+      //     params: { periods = [] },
+      //     styles = [],
+      //   } = view
+      //   const lines = this.getSMALines(periods)
+      //   this.renderer.drawMultiLines(ctx, lines, styles.colors)
+      // }
     })
   }
 
-  private getBollLines(): Point[][] {
-    const root = this.getRoot()
-    const parent = this.getParent() as IPanel
-    const xAxis = root.getXAxis()
-    const { yAxis } = parent
-    const visibleBars = this.getVisibleBars()
-    const lineMap: { [k: string]: Point[] } = {
-      up: [],
-      md: [],
-      dn: [],
-    }
-    for (let i = 0; i < visibleBars.length; i++) {
-      const item = visibleBars[i]
-      const x = xAxis.getCoordOfValue(item.time)
-      const upY = yAxis.getCoordOfValue(item[Indicator.BOLL.upKey])
-      const mdY = yAxis.getCoordOfValue(item[Indicator.BOLL.mdKey])
-      const dnY = yAxis.getCoordOfValue(item[Indicator.BOLL.dnKey])
-      lineMap.up.push({ x, y: -upY })
-      lineMap.md.push({ x, y: -mdY })
-      lineMap.dn.push({ x, y: -dnY })
-    }
-    return [lineMap.up, lineMap.md, lineMap.dn]
-  }
+  // private getBollLines(): Point[][] {
+  //   const root = this.getRoot()
+  //   const parent = this.getParent() as IPanel
+  //   const xAxis = root.getXAxis()
+  //   const { yAxis } = parent
+  //   const visibleBars = this.getVisibleBars()
+  //   const lineMap: { [k: string]: Point[] } = {
+  //     up: [],
+  //     md: [],
+  //     dn: [],
+  //   }
+  //   for (let i = 0; i < visibleBars.length; i++) {
+  //     const item = visibleBars[i]
+  //     const x = xAxis.getCoordOfValue(item.time)
+  //     const upY = yAxis.getCoordOfValue(item[Indicator.BOLL.upKey])
+  //     const mdY = yAxis.getCoordOfValue(item[Indicator.BOLL.mdKey])
+  //     const dnY = yAxis.getCoordOfValue(item[Indicator.BOLL.dnKey])
+  //     lineMap.up.push({ x, y: -upY })
+  //     lineMap.md.push({ x, y: -mdY })
+  //     lineMap.dn.push({ x, y: -dnY })
+  //   }
+  //   return [lineMap.up, lineMap.md, lineMap.dn]
+  // }
 
-  private getEMALines(periods: number[]): Point[][] {
-    const root = this.getRoot()
-    const parent = this.getParent() as IPanel
-    const xAxis = root.getXAxis()
-    const { yAxis } = parent
-    const visibleBars = this.getVisibleBars()
-    const lines: Point[][] = []
-    for (let i = 0; i < visibleBars.length; i++) {
-      const item = visibleBars[i]
-      const x = xAxis.getCoordOfValue(item.time)
-      for (let j = 0; j < periods.length; j++) {
-        const y = yAxis.getCoordOfValue(item[`EMA${periods[j]}`])
-        if (i === 0) {
-          lines[j] = []
-        }
-        lines[j].push({ x, y: -y })
-      }
-    }
-    return lines
-  }
+  // private getEMALines(periods: number[]): Point[][] {
+  //   const root = this.getRoot()
+  //   const parent = this.getParent() as IPanel
+  //   const xAxis = root.getXAxis()
+  //   const { yAxis } = parent
+  //   const visibleBars = this.getVisibleBars()
+  //   const lines: Point[][] = []
+  //   for (let i = 0; i < visibleBars.length; i++) {
+  //     const item = visibleBars[i]
+  //     const x = xAxis.getCoordOfValue(item.time)
+  //     for (let j = 0; j < periods.length; j++) {
+  //       const y = yAxis.getCoordOfValue(item[`EMA${periods[j]}`])
+  //       if (i === 0) {
+  //         lines[j] = []
+  //       }
+  //       lines[j].push({ x, y: -y })
+  //     }
+  //   }
+  //   return lines
+  // }
 
-  private getSMALines(periods: number[]): Point[][] {
-    const root = this.getRoot()
-    const parent = this.getParent() as IPanel
-    const xAxis = root.getXAxis()
-    const { yAxis } = parent
-    const visibleBars = this.getVisibleBars()
-    const lines: Point[][] = []
-    for (let i = 0; i < visibleBars.length; i++) {
-      const item = visibleBars[i]
-      const x = xAxis.getCoordOfValue(item.time)
-      for (let j = 0; j < periods.length; j++) {
-        const y = yAxis.getCoordOfValue(item[`${Indicator.SMA.key}${periods[j]}`])
-        if (i === 0) {
-          lines[j] = []
-        }
-        lines[j].push({ x, y: -y })
-      }
-    }
-    return lines
-  }
+  // private getSMALines(periods: number[]): Point[][] {
+  //   const root = this.getRoot()
+  //   const parent = this.getParent() as IPanel
+  //   const xAxis = root.getXAxis()
+  //   const { yAxis } = parent
+  //   const visibleBars = this.getVisibleBars()
+  //   const lines: Point[][] = []
+  //   for (let i = 0; i < visibleBars.length; i++) {
+  //     const item = visibleBars[i]
+  //     const x = xAxis.getCoordOfValue(item.time)
+  //     for (let j = 0; j < periods.length; j++) {
+  //       const y = yAxis.getCoordOfValue(item[`${Indicator.SMA.key}${periods[j]}`])
+  //       if (i === 0) {
+  //         lines[j] = []
+  //       }
+  //       lines[j].push({ x, y: -y })
+  //     }
+  //   }
+  //   return lines
+  // }
 
   private getBarPosition(bar: CandlestickItem) {
     const { time, low, high, open, close } = bar

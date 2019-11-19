@@ -15,17 +15,16 @@ import {
   Point,
   CommonKeys,
   PanelType,
-  ViewType,
+  IndicatorType,
   DrawMode,
   CommonObject,
 } from '../typeof/type'
-import { RegisterEvents, AddViewTypes } from '../typeof/constant'
+import { RegisterEvents } from '../typeof/constant'
 import { createCanvasElement, geElementOffsetFromParent, setElementStyle } from '../util/helper'
 import CandlestickOptions from './options'
-import * as Indicator from './indicator'
+import Indicator from './indicator'
 import { isString } from '../util/type-check'
 import EventProxy from './eventProxy'
-import * as G from '../indicator'
 
 export default class Candlestick extends BaseView {
   protected defaultConfig = { ...CandlestickOptions }
@@ -79,7 +78,6 @@ export default class Candlestick extends BaseView {
     this.initWidgets()
     this.initEvents()
     this.initialData()
-    console.log(G)
   }
 
   public getCanvasCollection(): HTMLCanvasElement[] {
@@ -338,7 +336,7 @@ export default class Candlestick extends BaseView {
   public initWidgets() {
     const { margin, timeline, xAxis, height } = this.getConfig()
     this._visibleViewHeight = height - margin.top - margin.bottom - timeline.height - xAxis.height
-    const basePanel = new IPanel(PanelType.BASE, ViewType.CANDLE)
+    const basePanel = new IPanel(PanelType.BASE, { indicatorType: IndicatorType.CANDLE, isScaleCenter: true })
     const timeAxisWidget = new TimeAxisWidget()
     const timelineWidget = new TimelineWidget()
     const extPanels: Array<IPanel | IWidget> = this.getIndicatorPanels(basePanel)
@@ -351,9 +349,13 @@ export default class Candlestick extends BaseView {
     const extPanels: Array<IPanel | IWidget> = []
     let frontPanel: IPanel = basePanel
     indicatorViews.forEach(view => {
-      this._indicatorViews.set(view.type, view)
-      if (AddViewTypes.includes(view.type)) {
-        const extPanel = new IPanel(PanelType.EXT, view.type, view.params, view.styles)
+      const indicatorType = view.type
+      if (!Indicator[indicatorType]) return
+      const { defaultProps } = Indicator[indicatorType]
+      const options = { params: {}, ...view, indicatorType, ...defaultProps }
+      this._indicatorViews.set(view.type, options)
+      if (!defaultProps.isHistBase) {
+        const extPanel = new IPanel(PanelType.EXT, options)
         const gapWidget = new GapWidget(frontPanel, extPanel)
         extPanels.push(gapWidget, extPanel)
         frontPanel = extPanel
@@ -409,14 +411,14 @@ export default class Candlestick extends BaseView {
     if (lastItem.time !== addItem.time) {
       seriesData.push(addItem)
       if (this._xAxis.domainRange.contain(addItem.time)) {
-        this.calculateIndicators()
+        // this.calculateIndicators()
         this.shiftTimeLineByTime(this._xAxis.getUnitTimeValue())
         return
       }
     } else {
       Object.assign(lastItem, addItem)
     }
-    this.calculateIndicators()
+    // this.calculateIndicators()
     this.updateYExtend()
     this.update()
   }
@@ -453,15 +455,19 @@ export default class Candlestick extends BaseView {
     }
   }
 
-  /* close chart panel */
   public closeIndicatorPanel(panel: IPanel | string) {
     /* first: find panels related width target
     second: update frontPanel and nextPanel of gapWidget
     */
     let closePanel: IPanel | string = ''
     if (isString(panel)) {
-      const tPanel = this.panels.find(ipanel => ipanel instanceof IPanel && ipanel.viewName === panel) as IPanel
-      closePanel = tPanel || panel
+      const tPanel = this.panels.find(ipanel => {
+        const indicatorType = ipanel.getAttr('indicatorType')
+        return ipanel instanceof IPanel && indicatorType === panel
+      }) as IPanel
+      closePanel = tPanel
+    } else {
+      closePanel = panel
     }
     if (isString(closePanel)) {
       this._indicatorViews.delete(closePanel as string)
@@ -492,9 +498,11 @@ export default class Candlestick extends BaseView {
     this.update()
   }
 
-  public addIndicatorPanel(type: ViewType, params: CommonObject, styles: CommonObject = {}) {
-    this._indicatorViews.set(type, { type, params, styles })
-    if (AddViewTypes.includes(type)) {
+  public addIndicatorPanel(type: IndicatorType, params: CommonObject, styles: CommonObject = {}) {
+    if (!Indicator[type]) return
+    const { defaultProps } = Indicator[type]
+    this._indicatorViews.set(type, { type, params, styles, ...defaultProps })
+    if (!defaultProps.isHistBase) {
       let frontPanel!: IPanel
       // find last IPanel
       for (let i = this.panels.length - 1; i >= 0; i--) {
@@ -504,20 +512,22 @@ export default class Candlestick extends BaseView {
           break
         }
       }
-      const extPanel = new IPanel(PanelType.EXT, type, params, styles)
+      const extPanel = new IPanel(PanelType.EXT, { indicatorType: type, params, styles })
       const gapWidget = new GapWidget(frontPanel, extPanel)
       this.addPanels([gapWidget, extPanel])
-      this.calculateIndicators()
+      // this.calculateIndicators()
       this.updatePanelBound()
     }
     this.update()
   }
 
+  public destroy() {}
+
   private initialData() {
     const seriesData = this.getSeriesData()
     if (seriesData.length > 0) {
       seriesData.forEach(this.formatItem)
-      this.calculateIndicators()
+      // this.calculateIndicators()
       this.setAxis()
       this.initPanelYAxis()
     }
@@ -532,12 +542,12 @@ export default class Candlestick extends BaseView {
     canvas &&
       RegisterEvents.forEach((evt: any) => {
         EventProxy.on(canvas, evt, this.eventHandler.bind(this, evt))
-        // canvas.addEventListener(evt, this.eventHandler.bind(this, evt))
       })
-    window.addEventListener('resize', this.resize.bind(this))
+    EventProxy.on(window, 'resize', this.resize.bind(this))
   }
 
   private eventHandler(eventType: string, e: any) {
+    if (!this._xAxis) return
     const eventActions = {
       click: this.onclick,
       mousedown: this.onmousedown,

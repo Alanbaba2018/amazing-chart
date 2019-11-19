@@ -2,40 +2,39 @@ import { Indicator, IndicatorInput } from '../indicator'
 
 export class AvgGainInput extends IndicatorInput {
   period: number
+
   values: number[]
 }
 
 export class AverageGain extends Indicator {
   generator: IterableIterator<number | undefined>
+
   constructor(input: AvgGainInput) {
     super(input)
-    let values = input.values
-    let period = input.period
-    let format = this.format
+    const { values, period } = input
 
-    this.generator = (function*(period) {
-      var currentValue = yield
-      var counter = 1
-      var gainSum = 0
-      var avgGain
-      var gain
-      var lastValue = currentValue
+    this.generator = (function* g(_period) {
+      let currentValue = yield
+      let counter = 1
+      let gainSum = 0
+      let avgGain
+      let gain
+      let lastValue = currentValue
       currentValue = yield
       while (true) {
         gain = currentValue - lastValue
         gain = gain > 0 ? gain : 0
         if (gain > 0) {
-          gainSum = gainSum + gain
+          gainSum += gain
         }
-        if (counter < period) {
+        if (counter < _period) {
           counter++
         } else if (avgGain === undefined) {
-          avgGain = gainSum / period
+          avgGain = gainSum / _period
         } else {
-          avgGain = (avgGain * (period - 1) + gain) / period
+          avgGain = (avgGain * (_period - 1) + gain) / _period
         }
         lastValue = currentValue
-        avgGain = avgGain !== undefined ? format(avgGain) : undefined
         currentValue = yield avgGain
       }
     })(period)
@@ -45,8 +44,8 @@ export class AverageGain extends Indicator {
     this.result = []
 
     values.forEach((tick: number) => {
-      //@ts-ignore
-      var result = this.generator.next(tick)
+      // @ts-ignore
+      let result = this.generator.next(tick)
       if (result.value !== undefined) {
         this.result.push(result.value)
       }
@@ -56,14 +55,14 @@ export class AverageGain extends Indicator {
   static calculate = averagegain
 
   nextValue(price: number): number | undefined {
-    //@ts-ignore
+    // @ts-ignore
     return this.generator.next(price).value
   }
 }
 
 export function averagegain(input: AvgGainInput): number[] {
   Indicator.reverseInputs(input)
-  var result = new AverageGain(input).result
+  let { result } = new AverageGain(input)
   if (input.reversedInput) {
     result.reverse()
   }

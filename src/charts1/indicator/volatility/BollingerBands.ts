@@ -1,67 +1,65 @@
-'use strict'
 import { Indicator, IndicatorInput } from '../indicator'
 import { SMA } from '../moving_averages/SMA'
 import { SD } from '../Utils/SD'
+
 export class BollingerBandsInput extends IndicatorInput {
   period: number
+
   stdDev: number
+
   values: number[]
 }
 
 export class BollingerBandsOutput extends IndicatorInput {
   middle: number
+
   upper: number
+
   lower: number
+
   pb: number
 }
 
 export class BollingerBands extends Indicator {
   generator: IterableIterator<BollingerBandsOutput | undefined>
+
   constructor(input: BollingerBandsInput) {
     super(input)
-    var period = input.period
-    var priceArray = input.values
-    var stdDev = input.stdDev
-    var format = this.format
+    const { period, values: priceArray, stdDev } = input
 
-    var sma, sd
+    let sma
+    let sd
 
     this.result = []
 
     sma = new SMA({
-      period: period,
+      period,
       values: [],
-      format: v => {
-        return v
-      },
     })
     sd = new SD({
-      period: period,
+      period,
       values: [],
-      format: v => {
-        return v
-      },
     })
 
-    this.generator = (function*() {
-      var result
-      var tick
-      var calcSMA
-      var calcsd
+    this.generator = (function* g() {
+      let result
+      let tick
+      let calcSMA
+      let calcsd
       tick = yield
       while (true) {
         calcSMA = sma.nextValue(tick)
         calcsd = sd.nextValue(tick)
         if (calcSMA) {
-          let middle = format(calcSMA)
-          let upper = format(calcSMA + calcsd * stdDev)
-          let lower = format(calcSMA - calcsd * stdDev)
-          let pb: number = format((tick - lower) / (upper - lower))
+          let middle = calcSMA
+          let upper = calcSMA + calcsd * stdDev
+          let lower = calcSMA - calcsd * stdDev
+          let pb: number = (tick - lower) / (upper - lower)
           result = {
-            middle: middle,
-            upper: upper,
-            lower: lower,
-            pb: pb,
+            middle,
+            upper,
+            lower,
+            pb,
           }
         }
         tick = yield result
@@ -71,9 +69,9 @@ export class BollingerBands extends Indicator {
     this.generator.next()
 
     priceArray.forEach(tick => {
-      //@ts-ignore
-      var result = this.generator.next(tick)
-      if (result.value != undefined) {
+      // @ts-ignore
+      let result = this.generator.next(tick)
+      if (result.value !== undefined) {
         this.result.push(result.value)
       }
     })
@@ -82,14 +80,14 @@ export class BollingerBands extends Indicator {
   static calculate = bollingerbands
 
   nextValue(price: number): BollingerBandsOutput | undefined {
-    //@ts-ignore
+    // @ts-ignore
     return this.generator.next(price).value
   }
 }
 
 export function bollingerbands(input: BollingerBandsInput): BollingerBandsOutput[] {
   Indicator.reverseInputs(input)
-  var result = new BollingerBands(input).result
+  let { result } = new BollingerBands(input)
   if (input.reversedInput) {
     result.reverse()
   }

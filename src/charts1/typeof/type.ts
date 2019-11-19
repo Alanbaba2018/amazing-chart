@@ -112,7 +112,7 @@ export enum DrawMode {
   XAxis = 'XAxis',
 }
 
-export enum ViewType {
+export enum IndicatorType {
   CANDLE = 'CANDLE',
   MACD = 'MACD',
   EMA = 'EMA',
@@ -124,9 +124,11 @@ export enum ViewType {
   VOL = 'VOL',
 }
 export interface IndicatorView {
-  type: ViewType
+  type: IndicatorType
   params: { [k: string]: any }
   styles: CommonObject
+  isHistBase: boolean
+  isScaleCenter: boolean
 }
 
 export enum ColorMap {
@@ -139,18 +141,18 @@ export enum ColorMap {
   LightGray = '#9a9b9a',
 }
 
-interface Margin {
+export interface Margin {
   left: number
   right: number
   top: number
   bottom: number
 }
-interface RectStyles {
+export interface RectStyles {
   fillStyle: string
   strokeStyle: string
   lineWidth: number
 }
-interface AxisConfig {
+export interface AxisConfig {
   textBaseline: TextBaseLine
   textAlign: TextAlign
   strokeStyle?: string
@@ -161,13 +163,13 @@ interface AxisConfig {
   scaleRatio?: number
 }
 
-interface xAxisConfig extends AxisConfig {
+export interface xAxisConfig extends AxisConfig {
   height: number
 }
-interface yAxisConfig extends AxisConfig {
+export interface yAxisConfig extends AxisConfig {
   width: number
 }
-interface TimelineConfig extends xAxisConfig {
+export interface TimelineConfig extends xAxisConfig {
   timeAxisHeight: number
   borderColor: string
   shadowColor: string
@@ -231,6 +233,9 @@ export enum Direction {
 }
 
 export enum ChartType {
+  Line = 'LINE',
+  Bar = 'BAR',
+  Area = 'AREA',
   Standard = 'STANDARD',
   Custom = 'CUSTOM',
 }

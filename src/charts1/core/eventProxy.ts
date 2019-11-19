@@ -37,6 +37,12 @@ const PCEvents = {
       callback(evt)
     },
   },
+  resize: {
+    eventName: 'resize',
+    handler(callback: Function) {
+      callback()
+    },
+  },
 }
 
 const MobileEvents = {
@@ -98,7 +104,7 @@ const EventProxy = {
     _event.nameSpace = nameSpace
     return _event
   },
-  on(target: HTMLElement | Document, eventType: string, callback: EventListener) {
+  on(target: HTMLElement | Document | Window, eventType: string, callback: EventListener) {
     // eventName + nameSpace is only eventID
     const { eventName, nameSpace, handler } = this.getEventName(eventType)
     if (!eventName) return

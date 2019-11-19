@@ -1,19 +1,22 @@
-'use strict'
 import { Indicator } from '../indicator'
 import { MAInput } from './SMA'
 import { LinkedList } from '../Utils/LinkedList'
 
 export class WMA extends Indicator {
   period: number
+
   price: number[]
+
   result: number[]
+
   generator: IterableIterator<number | undefined>
+
   constructor(input: MAInput) {
     super(input)
-    var period = input.period
-    var priceArray = input.values
+    let { period } = input
+    let priceArray = input.values
     this.result = []
-    this.generator = (function*() {
+    this.generator = (function* g() {
       let data = new LinkedList()
       let denominator = (period * (period + 1)) / 2
 
@@ -24,9 +27,9 @@ export class WMA extends Indicator {
           data.resetCursor()
           let result = 0
           for (let i = 1; i <= period; i++) {
-            result = result + (data.next() * i) / denominator
+            result += (data.next() * i) / denominator
           }
-          var next = yield result
+          let next = yield result
           data.shift()
           data.push(next)
         }
@@ -36,30 +39,27 @@ export class WMA extends Indicator {
     this.generator.next()
 
     priceArray.forEach((tick: any) => {
-      var result = this.generator.next(tick)
-      if (result.value != undefined) {
+      let result = this.generator.next(tick)
+      if (result.value !== undefined) {
         this.result.push(this.format(result.value))
       }
     })
   }
 
-  static calculate = wma
+  static calculate = (input: MAInput): number[] => {
+    Indicator.reverseInputs(input)
+    let { result } = new WMA(input)
+    if (input.reversedInput) {
+      result.reverse()
+    }
+    Indicator.reverseInputs(input)
+    return result
+  }
 
-  //STEP 5. REMOVE GET RESULT FUNCTION
-  //@ts-ignore
+  // @ts-ignore
   nextValue(price: number): number | undefined {
-    //@ts-ignore
-    var result = this.generator.next(price).value
-    if (result != undefined) return this.format(result)
+    // @ts-ignore
+    let result = this.generator.next(price).value
+    if (result !== undefined) return this.format(result)
   }
-}
-
-export function wma(input: MAInput): number[] {
-  Indicator.reverseInputs(input)
-  var result = new WMA(input).result
-  if (input.reversedInput) {
-    result.reverse()
-  }
-  Indicator.reverseInputs(input)
-  return result
 }

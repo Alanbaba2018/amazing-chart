@@ -3,23 +3,27 @@ import { MAInput, SMA } from './SMA'
 
 export class EMA extends Indicator {
   period: number
+
   price: number[]
+
   result: number[]
+
   generator: IterableIterator<number | undefined>
+
   constructor(input: MAInput) {
     super(input)
-    var period = input.period
-    var priceArray = input.values
-    var exponent = 2 / (period + 1)
-    var sma: SMA
+    let { period } = input
+    let priceArray = input.values
+    let exponent = 2 / (period + 1)
+    let sma: SMA
 
     this.result = []
 
-    sma = new SMA({ period: period, values: [] })
+    sma = new SMA({ period, values: [] })
 
-    var genFn = function*(): IterableIterator<number | undefined> {
-      var tick: any = yield
-      var prevEma
+    let genFn = function*(): IterableIterator<number | undefined> {
+      let tick: any = yield
+      let prevEma
       while (true) {
         if (prevEma !== undefined && tick !== undefined) {
           prevEma = (tick - prevEma) * exponent + prevEma
@@ -38,29 +42,27 @@ export class EMA extends Indicator {
     this.generator.next()
 
     priceArray.forEach(tick => {
-      //@ts-ignore
-      var result = this.generator.next(tick)
-      if (result.value != undefined) {
+      // @ts-ignore
+      let result = this.generator.next(tick)
+      if (result.value !== undefined) {
         this.result.push(this.format(result.value))
       }
     })
   }
 
-  static calculate = ema
+  static calculate = (input: MAInput): number[] => {
+    Indicator.reverseInputs(input)
+    let { result } = new EMA(input)
+    if (input.reversedInput) {
+      result.reverse()
+    }
+    Indicator.reverseInputs(input)
+    return result
+  }
 
-  //@ts-ignore
+  // @ts-ignore
   nextValue(price: any) {
-    var result = this.generator.next(price).value
-    if (result != undefined) return this.format(result)
+    let result = this.generator.next(price).value
+    if (result !== undefined) return this.format(result)
   }
-}
-
-export function ema(input: MAInput): number[] {
-  Indicator.reverseInputs(input)
-  var result = new EMA(input).result
-  if (input.reversedInput) {
-    result.reverse()
-  }
-  Indicator.reverseInputs(input)
-  return result
 }

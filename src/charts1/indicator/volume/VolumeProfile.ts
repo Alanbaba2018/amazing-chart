@@ -2,17 +2,25 @@ import { Indicator, IndicatorInput } from '../indicator'
 
 export class VolumeProfileInput extends IndicatorInput {
   high: number[]
+
   open: number[]
+
   low: number[]
+
   close: number[]
+
   volume: number[]
+
   noOfBars: number
 }
 
 export class VolumeProfileOutput {
   rangeStart: number
+
   rangeEnd: number
+
   bullishVolume: number
+
   bearishVolume: number
 }
 
@@ -22,25 +30,26 @@ export function priceFallsBetweenBarRange(low, high, low1, high1) {
 
 export class VolumeProfile extends Indicator {
   generator: IterableIterator<number | undefined>
+
   constructor(input: VolumeProfileInput) {
     super(input)
-    var highs = input.high
-    var lows = input.low
-    var closes = input.close
-    var opens = input.open
-    var volumes = input.volume
-    var bars = input.noOfBars
+    let highs = input.high
+    let lows = input.low
+    let closes = input.close
+    let opens = input.open
+    let volumes = input.volume
+    let bars = input.noOfBars
 
     if (!(lows.length === highs.length && highs.length === closes.length && highs.length === volumes.length)) {
-      throw 'Inputs(low,high, close, volumes) not of equal size'
+      throw new Error('Inputs(low,high, close, volumes) not of equal size')
     }
 
     this.result = []
 
-    var max = Math.max(...highs, ...lows, ...closes, ...opens)
-    var min = Math.min(...highs, ...lows, ...closes, ...opens)
-    var barRange = (max - min) / bars
-    var lastEnd = min
+    let max = Math.max(...highs, ...lows, ...closes, ...opens)
+    let min = Math.min(...highs, ...lows, ...closes, ...opens)
+    let barRange = (max - min) / bars
+    let lastEnd = min
     for (let i = 0; i < bars; i++) {
       let rangeStart = lastEnd
       let rangeEnd = rangeStart + barRange
@@ -55,11 +64,11 @@ export class VolumeProfile extends Indicator {
         let priceBarClose = closes[priceBar]
         let priceBarVolume = volumes[priceBar]
         if (priceFallsBetweenBarRange(rangeStart, rangeEnd, priceBarStart, priceBarEnd)) {
-          totalVolume = totalVolume + priceBarVolume
+          totalVolume += priceBarVolume
           if (priceBarOpen > priceBarClose) {
-            bearishVolume = bearishVolume + priceBarVolume
+            bearishVolume += priceBarVolume
           } else {
-            bullishVolume = bullishVolume + priceBarVolume
+            bullishVolume += priceBarVolume
           }
         }
       }
@@ -76,13 +85,13 @@ export class VolumeProfile extends Indicator {
   static calculate = volumeprofile
 
   nextValue(): number | undefined {
-    throw 'Next value not supported for volume profile'
+    throw new Error('Next value not supported for volume profile')
   }
 }
 
 export function volumeprofile(input: VolumeProfileInput): number[] {
   Indicator.reverseInputs(input)
-  var result = new VolumeProfile(input).result
+  let { result } = new VolumeProfile(input)
   if (input.reversedInput) {
     result.reverse()
   }

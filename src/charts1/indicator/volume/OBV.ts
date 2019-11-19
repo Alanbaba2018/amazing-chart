@@ -1,27 +1,26 @@
 import { Indicator, IndicatorInput } from '../indicator'
 import { CandleData } from '../StockData'
-/**
- * Created by AAravindan on 5/17/16.
- */
-'use strict'
+
 export class OBVInput extends IndicatorInput {
   close: number[]
+
   volume: number[]
 }
 
 export class OBV extends Indicator {
   generator: IterableIterator<number | undefined>
+
   constructor(input: OBVInput) {
     super(input)
-    var closes = input.close
-    var volumes = input.volume
+    let closes = input.close
+    let volumes = input.volume
 
     this.result = []
 
-    this.generator = (function*() {
-      var result = 0
-      var tick
-      var lastClose
+    this.generator = (function* g() {
+      let result = 0
+      let tick
+      let lastClose
       tick = yield
       if (tick.close && typeof tick.close === 'number') {
         lastClose = tick.close
@@ -29,9 +28,9 @@ export class OBV extends Indicator {
       }
       while (true) {
         if (lastClose < tick.close) {
-          result = result + tick.volume
+          result += tick.volume
         } else if (tick.close < lastClose) {
-          result = result - tick.volume
+          result -= tick.volume
         }
         lastClose = tick.close
         tick = yield result
@@ -40,15 +39,15 @@ export class OBV extends Indicator {
 
     this.generator.next()
 
-    //@ts-ignore
+    // @ts-ignore
     closes.forEach((close, index) => {
       let tickInput = {
         close: closes[index],
         volume: volumes[index],
       }
-      //@ts-ignore
+      // @ts-ignore
       let result = this.generator.next(tickInput)
-      if (result.value != undefined) {
+      if (result.value !== undefined) {
         this.result.push(result.value)
       }
     })
@@ -57,14 +56,14 @@ export class OBV extends Indicator {
   static calculate = obv
 
   nextValue(price: CandleData): number | undefined {
-    //@ts-ignore
+    // @ts-ignore
     return this.generator.next(price).value
   }
 }
 
 export function obv(input: OBVInput): number[] {
   Indicator.reverseInputs(input)
-  var result = new OBV(input).result
+  let { result } = new OBV(input)
   if (input.reversedInput) {
     result.reverse()
   }

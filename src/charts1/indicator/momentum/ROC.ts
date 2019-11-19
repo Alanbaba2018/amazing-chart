@@ -3,22 +3,25 @@ import LinkedList from '../Utils/FixedSizeLinkedList'
 
 export class ROCInput extends IndicatorInput {
   period: number
+
   values: number[]
 }
 
 export class ROC extends Indicator {
   result: number[]
+
   generator: IterableIterator<number | undefined>
+
   constructor(input: ROCInput) {
     super(input)
-    var period = input.period
-    var priceArray = input.values
+    const { period } = input
+    let priceArray = input.values
     this.result = []
-    this.generator = (function*() {
+    this.generator = (function* g() {
       let index = 1
-      var pastPeriods = new LinkedList(period)
-      var tick = yield
-      var roc
+      let pastPeriods = new LinkedList(period)
+      let tick = yield
+      let roc
       while (true) {
         pastPeriods.push(tick)
         if (index < period) {
@@ -33,31 +36,29 @@ export class ROC extends Indicator {
     this.generator.next()
 
     priceArray.forEach((tick: any) => {
-      var result = this.generator.next(tick)
-      if (result.value != undefined && !isNaN(result.value)) {
+      let result = this.generator.next(tick)
+      if (result.value !== undefined && !isNaN(result.value)) {
         this.result.push(this.format(result.value))
       }
     })
   }
 
-  static calculate = roc
+  static calculate = (input: ROCInput): number[] => {
+    Indicator.reverseInputs(input)
+    let { result } = new ROC(input)
+    if (input.reversedInput) {
+      result.reverse()
+    }
+    Indicator.reverseInputs(input)
+    return result
+  }
 
-  //@ts-ignore
+  // @ts-ignore
   nextValue(price: number): number | undefined {
-    //@ts-ignore
-    var nextResult = this.generator.next(price)
-    if (nextResult.value != undefined && !isNaN(nextResult.value)) {
+    // @ts-ignore
+    let nextResult = this.generator.next(price)
+    if (nextResult.value !== undefined && !isNaN(nextResult.value)) {
       return this.format(nextResult.value)
     }
   }
-}
-
-export function roc(input: ROCInput): number[] {
-  Indicator.reverseInputs(input)
-  var result = new ROC(input).result
-  if (input.reversedInput) {
-    result.reverse()
-  }
-  Indicator.reverseInputs(input)
-  return result
 }

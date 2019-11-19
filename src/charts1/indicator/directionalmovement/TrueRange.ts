@@ -16,55 +16,55 @@ export class TrueRange extends Indicator {
 
   constructor(input: TrueRangeInput) {
     super(input)
-    var lows = input.low
-    var highs = input.high
-    var closes = input.close
-    var format = this.format
+    let lows = input.low
+    let highs = input.high
+    let closes = input.close
 
-    if (lows.length != highs.length) {
-      throw 'Inputs(low,high) not of equal size'
+    if (lows.length !== highs.length) {
+      throw new Error('Inputs(low,high) not of equal size')
     }
 
     this.result = []
 
-    this.generator = (function*(): IterableIterator<number | undefined> {
-      //@ts-ignore
-      var current: CandleData = yield
-      var previousClose, result
+    this.generator = (function* g(this: any): IterableIterator<number | undefined> {
+      // @ts-ignore
+      let current: CandleData = yield
+      let previousClose
+      let result
       while (true) {
         if (previousClose === undefined) {
           previousClose = current.close
-          //@ts-ignore
+          // @ts-ignore
           current = yield result
         }
         result = Math.max(
-          //@ts-ignore
+          // @ts-ignore
           current.high - current.low,
-          //@ts-ignore
+          // @ts-ignore
           isNaN(Math.abs(current.high - previousClose)) ? 0 : Math.abs(current.high - previousClose),
-          //@ts-ignore
+          // @ts-ignore
           isNaN(Math.abs(current.low - previousClose)) ? 0 : Math.abs(current.low - previousClose),
         )
         previousClose = current.close
-        if (result != undefined) {
-          result = format(result)
+        if (result !== undefined) {
+          result = this.format(result)
         }
-        //@ts-ignore
+        // @ts-ignore
         current = yield result
       }
     })()
 
     this.generator.next()
 
-    //@ts-ignore
+    // @ts-ignore
     lows.forEach((tick, index) => {
-      //@ts-ignore
-      var result = this.generator.next({
+      // @ts-ignore
+      let result = this.generator.next({
         high: highs[index],
         low: lows[index],
         close: closes[index],
       })
-      if (result.value != undefined) {
+      if (result.value !== undefined) {
         this.result.push(result.value)
       }
     })
@@ -80,7 +80,7 @@ export class TrueRange extends Indicator {
 
 export function truerange(input: TrueRangeInput): number[] {
   Indicator.reverseInputs(input)
-  var result = new TrueRange(input).result
+  let { result } = new TrueRange(input)
   if (input.reversedInput) {
     result.reverse()
   }

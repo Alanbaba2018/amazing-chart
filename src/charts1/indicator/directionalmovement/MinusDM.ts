@@ -1,36 +1,34 @@
 import { Indicator, IndicatorInput } from '../indicator'
-/**
- * Created by AAravindan on 5/8/16.
- */
-'use strict'
 
 export class MDMInput extends IndicatorInput {
   low: number[]
+
   high: number[]
 }
 
 export class MDM extends Indicator {
   result: number[]
+
   generator: IterableIterator<number | undefined>
+
   constructor(input: MDMInput) {
     super(input)
-    var lows = input.low
-    var highs = input.high
-    var format = this.format
+    let lows = input.low
+    let highs = input.high
 
-    if (lows.length != highs.length) {
-      throw 'Inputs(low,high) not of equal size'
+    if (lows.length !== highs.length) {
+      throw new Error('Inputs(low,high) not of equal size')
     }
     this.result = []
-    this.generator = (function*() {
-      var minusDm
-      var current = yield
-      var last
+    this.generator = (function* g() {
+      let minusDm
+      let current = yield
+      let last
       while (true) {
         if (last) {
           let upMove = current.high - last.high
           let downMove = last.low - current.low
-          minusDm = format(downMove > upMove && downMove > 0 ? downMove : 0)
+          minusDm = downMove > upMove && downMove > 0 ? downMove : 0
         }
         last = current
         current = yield minusDm
@@ -39,10 +37,10 @@ export class MDM extends Indicator {
 
     this.generator.next()
 
-    //@ts-ignore
+    // @ts-ignore
     lows.forEach((tick, index) => {
-      //@ts-ignore
-      var result = this.generator.next({
+      // @ts-ignore
+      let result = this.generator.next({
         high: highs[index],
         low: lows[index],
       })
@@ -52,7 +50,7 @@ export class MDM extends Indicator {
 
   static calculate(input: MDMInput): number[] {
     Indicator.reverseInputs(input)
-    var result = new MDM(input).result
+    let { result } = new MDM(input)
     if (input.reversedInput) {
       result.reverse()
     }
@@ -61,7 +59,7 @@ export class MDM extends Indicator {
   }
 
   nextValue(price: number): number | undefined {
-    //@ts-ignore
+    // @ts-ignore
     return this.generator.next(price).value
   }
 }

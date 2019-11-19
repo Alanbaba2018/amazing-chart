@@ -6,12 +6,11 @@ import {
   Bound,
   PanelType,
   CandlestickItem,
-  ViewType,
+  IndicatorType,
   CommonObject,
   StandardBar,
   DrawMode,
   Point,
-  ChartType,
 } from '../../typeof/type'
 import { GapWidgetHeight } from '../../typeof/constant'
 import Canvas from '../canvas'
@@ -20,9 +19,15 @@ import FixAxis from '../../model/fix-axis'
 import CandlestickWidget from './candlestick-widget'
 import PriceAxisWidget from './price-axis-widget'
 import ExtChartWidget from './ext/ext-chart-widget'
-import * as Indicator from '../indicator'
-import { isNumber } from '../../util/type-check'
+import Indicator, { PlotItem, IndicatorResult } from '../indicator'
 import { setElementStyle, isBoundContain } from '../../util/helper'
+
+interface IPanelOptions {
+  indicatorType: IndicatorType
+  params?: CommonObject
+  styles?: CommonObject
+  [k: string]: any
+}
 
 export default class IPanel extends IBound {
   public widgets: IWidget[] = []
@@ -33,17 +38,16 @@ export default class IPanel extends IBound {
 
   private _parent: Candlestick
 
+  // Base or Indicator chart
   private _panelType: PanelType
 
   private _title: string = ''
 
-  private _viewName: ViewType
-
-  private _chartType: ChartType
-
   private _weight: number = 1
 
   private _yAxis: Axis
+
+  private _result: IndicatorResult[] = []
 
   public get yAxis(): Axis {
     return this._yAxis
@@ -51,14 +55,6 @@ export default class IPanel extends IBound {
 
   public get panelType(): PanelType {
     return this._panelType
-  }
-
-  public get viewName(): ViewType {
-    return this._viewName
-  }
-
-  public get chartType(): ChartType {
-    return this._chartType
   }
 
   public get weight(): number {
@@ -73,22 +69,22 @@ export default class IPanel extends IBound {
     return this.getParent().getXAxis()
   }
 
-  constructor(panelType: PanelType, viewName: ViewType, params: CommonObject = {}, styles: CommonObject = {}) {
+  constructor(panelType: PanelType, options: IPanelOptions) {
     super()
+    this.setAttrs(options)
     this._panelType = panelType
-    this._viewName = viewName
-    this._chartType = Indicator[this._viewName] && Indicator[this._viewName].type
-    this.setAttrs({ params, styles, ...this.defaultConfig })
+    this.setAttrs({ ...options, ...this.defaultConfig })
     this._initWidgets()
     this._initEvents()
   }
 
   public setYAxis() {
     const yExtent = this._getYExtent()
-    if (this._chartType === ChartType.Standard) {
-      this._yAxis = new FixAxis([0, yExtent[1]], [0, this.bound.height])
-    } else {
+    const isScaleCenter = this.getAttr('isScaleCenter')
+    if (isScaleCenter) {
       this._yAxis = new Axis(yExtent, [0, this.bound.height])
+    } else {
+      this._yAxis = new FixAxis([0, yExtent[1]], [0, this.bound.height])
     }
   }
 
@@ -215,12 +211,13 @@ export default class IPanel extends IBound {
     const newCenter = (yExtent[0] + yExtent[1]) / 2
     const halfInterval = (yExtent[1] - yExtent[0]) / 2
     const scaleCoeff = this._yAxis.getScaleCoeff()
-    if (this._chartType === ChartType.Standard) {
-      this._yAxis.domainRange.setMinValue(0).setMaxValue(halfInterval * 2 * scaleCoeff)
-    } else {
+    const isScaleCenter = this.getAttr('isScaleCenter')
+    if (isScaleCenter) {
       this._yAxis.domainRange
         .setMinValue(newCenter - halfInterval * scaleCoeff)
         .setMaxValue(newCenter + halfInterval * scaleCoeff)
+    } else {
+      this._yAxis.domainRange.setMinValue(0).setMaxValue(halfInterval * 2 * scaleCoeff)
     }
   }
 
@@ -275,40 +272,30 @@ export default class IPanel extends IBound {
     return barDatas
   }
 
-  public getStandardBarDatas(key: string): { up: StandardBar[]; down: StandardBar[] } {
-    const visibleData: CandlestickItem[] = this.getVisibleSeriesData()
+  public getBarDatas(data: PlotItem[]): StandardBar[] {
     const parent = this.getParent()
     const { barWeight = 0.3 } = parent.getAttr('candlestick')
     const unitWidth = this.xAxis.unitWidth * barWeight
-    const upDatas: StandardBar[] = []
-    const downDatas: StandardBar[] = []
-    visibleData.forEach(item => {
-      if (item[key]) {
-        const x = this.xAxis.getCoordOfValue(item.time)
-        const y = this.yAxis.getCoordOfValue(item[key])
-        const list = item.open < item.close ? upDatas : downDatas
-        list.push({
-          x: x - unitWidth,
-          y: -y,
-          width: unitWidth * 2,
-          height: y,
-        })
+    const zeroCoord = this.yAxis.getCoordOfValue(0)
+    return data.map(item => {
+      const { time, value } = item
+      const x = this.xAxis.getCoordOfValue(time)
+      const y = this.yAxis.getCoordOfValue(value)
+      return {
+        x: x - unitWidth,
+        y: value > 0 ? -y : -zeroCoord,
+        width: unitWidth * 2,
+        height: Math.abs(y - zeroCoord),
       }
     })
-    return { up: upDatas, down: downDatas }
   }
 
-  public getLineDatas(key: string): Point[] {
-    const lineDatas: Point[] = []
-    const visibleData = this.getVisibleSeriesData()
-    visibleData.forEach(item => {
-      if (item[key]) {
-        const y = this.yAxis.getCoordOfValue(item[key])
-        const x = this.xAxis.getCoordOfValue(item.time)
-        lineDatas.push({ x, y: -y })
-      }
+  public getLineDatas(data: PlotItem[]): Point[] {
+    return data.map(item => {
+      const x = this.xAxis.getCoordOfValue(item.time)
+      const y = this.yAxis.getCoordOfValue(item.value)
+      return { x, y: -y }
     })
-    return lineDatas
   }
 
   public isHoverCloseIcon(viewPoint: Point): boolean {
@@ -317,6 +304,14 @@ export default class IPanel extends IBound {
     }
     const closeBound = this.getCloseIconBound()
     return isBoundContain(closeBound, viewPoint)
+  }
+
+  public updateChartData() {
+    const indicatorType = this.getAttr('indicatorType')
+    const seriesData = this.getSeriesData()
+    if (indicatorType !== IndicatorType.CANDLE) {
+      this._result = Indicator[indicatorType].getResult(seriesData, this.getAttr('params'))
+    }
   }
 
   private getUpdatedBound(): Bound {
@@ -373,49 +368,25 @@ export default class IPanel extends IBound {
   private _getYExtent(): number[] {
     const visibleData = this.getVisibleSeriesData()
     let values: number[] = []
-    const { MACD, ATR, MOMENTUM } = Indicator
-    const params = this.getAttr('params')
-    switch (this._viewName) {
-      case ViewType.CANDLE:
-        values = visibleData.reduce((acc: number[], cur: CandlestickItem) => {
-          acc.push(...[cur.high, cur.low])
-          return acc
+    const indicatorType = this.getAttr('indicatorType')
+    if (indicatorType === IndicatorType.CANDLE) {
+      values = visibleData.reduce((acc: number[], cur: CandlestickItem) => {
+        acc.push(...[cur.high, cur.low])
+        return acc
+      }, [])
+    } else if (Indicator[indicatorType]) {
+      const visibleTimeRange = this.xAxis.domainRange
+      if (this._result.length === 0) {
+        this.updateChartData()
+      }
+      values = this._result.reduce((acc: number[], { data = [] }) => {
+        const vals = data.reduce((_acc: number[], item: PlotItem) => {
+          visibleTimeRange.contain(item.time) && _acc.push(item.value)
+          return _acc
         }, [])
-        break
-      case ViewType.MACD:
-        values = visibleData.reduce((acc: number[], cur: CandlestickItem) => {
-          const indicators = [cur[MACD.key], cur[MACD.oscillatorKey], cur[MACD.signalKey]].filter(isNumber)
-          acc.push(...indicators)
-          return acc
-        }, [])
-        this._title = `${MACD.title} (${params.longPeriod}, ${params.shortPeriod}, ${params.signalPeriod})`
-        break
-      case ViewType.ATR:
-        values = visibleData.reduce((acc: number[], cur: CandlestickItem) => {
-          const indicators = params.periods.map(perid => cur[`${ATR.key}${perid}`]).filter(isNumber)
-          acc.push(...indicators)
-          return acc
-        }, [])
-        this._title = `${ATR.title} (${params.periods.join(', ')})`
-        break
-      case ViewType.VOL:
-        values = visibleData.reduce((acc: number[], cur: CandlestickItem) => {
-          acc.push(cur.volume)
-          return acc
-        }, [])
-        values.push(0)
-        this._title = 'VOL'
-        break
-      case ViewType.MOMENTUM:
-        values = visibleData.reduce((acc: number[], cur: CandlestickItem) => {
-          const indicators = params.periods.map(perid => cur[`${MOMENTUM.key}${perid}`]).filter(isNumber)
-          acc.push(...indicators)
-          return acc
-        }, [])
-        this._title = `${MOMENTUM.title} (${params.periods.join(', ')})`
-        break
-      default:
-        break
+        acc.push(...vals)
+        return acc
+      }, [])
     }
     return [Math.min(...values), Math.max(...values)]
   }

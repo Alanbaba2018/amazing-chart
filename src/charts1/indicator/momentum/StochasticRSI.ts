@@ -1,54 +1,54 @@
 import { IndicatorInput, Indicator } from '../indicator'
-/**
- * Created by AAravindan on 5/10/16.
- */
-'use strict'
-
 import { SMA } from '../moving_averages/SMA'
 import { RSI } from '../oscillators/RSI'
-import { Stochastic } from '../momentum/Stochastic'
+import { Stochastic } from './Stochastic'
 
 export class StochasticRsiInput extends IndicatorInput {
   values: number[]
+
   rsiPeriod: number
+
   stochasticPeriod: number
+
   kPeriod: number
+
   dPeriod: number
 }
 
 export class StochasticRSIOutput {
   stochRSI: number
+
   k: number
+
   d: number
 }
 
 export class StochasticRSI extends Indicator {
   result: StochasticRSIOutput[]
+
   generator: IterableIterator<StochasticRSIOutput | undefined>
+
   constructor(input: StochasticRsiInput) {
     super(input)
     let closes = input.values
-    let rsiPeriod = input.rsiPeriod
-    let stochasticPeriod = input.stochasticPeriod
-    let kPeriod = input.kPeriod
-    let dPeriod = input.dPeriod
+    const { rsiPeriod, stochasticPeriod, kPeriod, dPeriod } = input
     this.result = []
-    this.generator = (function*() {
+    this.generator = (function* g() {
       let rsi = new RSI({ period: rsiPeriod, values: [] })
       let stochastic = new Stochastic({ period: stochasticPeriod, high: [], low: [], close: [], signalPeriod: kPeriod })
       let dSma = new SMA({
         period: dPeriod,
         values: [],
-        format: v => {
-          return v
-        },
       })
-      let lastRSI, stochasticRSI, d, result
-      var tick = yield
+      let lastRSI
+      let stochasticRSI
+      let d
+      let result
+      let tick = yield
       while (true) {
         lastRSI = rsi.nextValue(tick)
         if (lastRSI !== undefined) {
-          var stochasticInput = { high: lastRSI, low: lastRSI, close: lastRSI } as any
+          let stochasticInput = { high: lastRSI, low: lastRSI, close: lastRSI } as any
           stochasticRSI = stochastic.nextValue(stochasticInput)
           if (stochasticRSI !== undefined && stochasticRSI.d !== undefined) {
             d = dSma.nextValue(stochasticRSI.d)
@@ -56,7 +56,7 @@ export class StochasticRSI extends Indicator {
               result = {
                 stochRSI: stochasticRSI.k,
                 k: stochasticRSI.d,
-                d: d,
+                d,
               }
           }
         }
@@ -67,29 +67,27 @@ export class StochasticRSI extends Indicator {
     this.generator.next()
 
     closes.forEach((tick: any) => {
-      var result = this.generator.next(tick)
+      let result = this.generator.next(tick)
       if (result.value !== undefined) {
         this.result.push(result.value)
       }
     })
   }
 
-  static calculate = stochasticrsi
+  static calculate = (input: StochasticRsiInput): StochasticRSIOutput[] => {
+    Indicator.reverseInputs(input)
+    let { result } = new StochasticRSI(input)
+    if (input.reversedInput) {
+      result.reverse()
+    }
+    Indicator.reverseInputs(input)
+    return result
+  }
 
-  //@ts-ignore
+  // @ts-ignore
   nextValue(input: StochasticRsiInput): StochasticRSIOutput {
-    //@ts-ignore
+    // @ts-ignore
     let nextResult = this.generator.next(input)
     if (nextResult.value !== undefined) return nextResult.value
   }
-}
-
-export function stochasticrsi(input: StochasticRsiInput): StochasticRSIOutput[] {
-  Indicator.reverseInputs(input)
-  var result = new StochasticRSI(input).result
-  if (input.reversedInput) {
-    result.reverse()
-  }
-  Indicator.reverseInputs(input)
-  return result
 }

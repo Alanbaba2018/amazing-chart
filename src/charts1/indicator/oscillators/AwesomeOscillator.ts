@@ -4,31 +4,34 @@ import { CandleData } from '../StockData'
 
 export class AwesomeOscillatorInput extends IndicatorInput {
   high: number[]
+
   low: number[]
+
   fastPeriod: number
+
   slowPeriod: number
 }
 
 export class AwesomeOscillator extends Indicator {
   generator: IterableIterator<number | undefined>
+
   constructor(input: AwesomeOscillatorInput) {
     super(input)
-    var highs = input.high
-    var lows = input.low
-    var fastPeriod = input.fastPeriod
-    var slowPeriod = input.slowPeriod
+    let highs = input.high
+    let lows = input.low
+    const { fastPeriod, slowPeriod } = input
 
-    var slowSMA = new SMA({ values: [], period: slowPeriod })
-    var fastSMA = new SMA({ values: [], period: fastPeriod })
+    let slowSMA = new SMA({ values: [], period: slowPeriod })
+    let fastSMA = new SMA({ values: [], period: fastPeriod })
 
     this.result = []
 
-    this.generator = (function*() {
-      var result
-      var tick
-      var medianPrice
-      var slowSmaValue
-      var fastSmaValue
+    this.generator = (function* g() {
+      let result
+      let tick
+      let medianPrice
+      let slowSmaValue
+      let fastSmaValue
       tick = yield
       while (true) {
         medianPrice = (tick.high + tick.low) / 2
@@ -44,13 +47,13 @@ export class AwesomeOscillator extends Indicator {
     this.generator.next()
 
     highs.forEach((tickHigh, index) => {
-      var tickInput = {
+      let tickInput = {
         high: tickHigh,
         low: lows[index],
       }
-      //@ts-ignore
-      var result = this.generator.next(tickInput)
-      if (result.value != undefined) {
+      // @ts-ignore
+      let result = this.generator.next(tickInput)
+      if (result.value !== undefined) {
         this.result.push(this.format(result.value))
       }
     })
@@ -58,11 +61,11 @@ export class AwesomeOscillator extends Indicator {
 
   static calculate = awesomeoscillator
 
-  //@ts-ignore
+  // @ts-ignore
   nextValue(price: CandleData): number | undefined {
-    //@ts-ignore
-    var result = this.generator.next(price)
-    if (result.value != undefined) {
+    // @ts-ignore
+    let result = this.generator.next(price)
+    if (result.value !== undefined) {
       return this.format(result.value)
     }
   }
@@ -70,7 +73,7 @@ export class AwesomeOscillator extends Indicator {
 
 export function awesomeoscillator(input: AwesomeOscillatorInput): number[] {
   Indicator.reverseInputs(input)
-  var result = new AwesomeOscillator(input).result
+  let { result } = new AwesomeOscillator(input)
   if (input.reversedInput) {
     result.reverse()
   }

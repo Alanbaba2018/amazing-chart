@@ -29,7 +29,7 @@ const config = {
     tickColor: ColorMap.White,
     tickWidth: 5,
     textMargin: 5,
-    scaleRatio: 0.02,
+    scaleRatio: 0.06,
   },
   crossHair: {
     show: true,

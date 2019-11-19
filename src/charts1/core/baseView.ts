@@ -76,7 +76,7 @@ export default abstract class BaseView extends EventHandle {
         this.panels.splice(i, 1)
         panelSet.delete(currentPanel)
         if (currentPanel instanceof IPanel) {
-          this._indicatorViews.delete(currentPanel.viewName)
+          this._indicatorViews.delete(currentPanel.getAttr('indicatorType'))
         }
         if (panelSet.size === 0) return
       }

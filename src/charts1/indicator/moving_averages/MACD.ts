@@ -6,11 +6,16 @@ import { SMA } from './SMA'
 import { EMA } from './EMA'
 
 export class MACDInput extends IndicatorInput {
-  SimpleMAOscillator: boolean = true
-  SimpleMASignal: boolean = true
+  SimpleMAOscillator?: boolean = true
+
+  SimpleMASignal?: boolean = true
+
   fastPeriod: number
+
   slowPeriod: number
+
   signalPeriod: number
+
   constructor(public values: number[]) {
     super()
   }
@@ -18,103 +23,92 @@ export class MACDInput extends IndicatorInput {
 
 export class MACDOutput {
   MACD?: number
+
   signal?: number
+
   histogram?: number
 }
 
 export class MACD extends Indicator {
   result: MACDOutput[]
+
   generator: IterableIterator<MACDOutput | undefined>
+
   constructor(input: MACDInput) {
     super(input)
-    var oscillatorMAtype = input.SimpleMAOscillator ? SMA : EMA
-    var signalMAtype = input.SimpleMASignal ? SMA : EMA
-    var fastMAProducer = new oscillatorMAtype({
+    const OscillatorMAtype = input.SimpleMAOscillator ? SMA : EMA
+    const SignalMAtype = input.SimpleMASignal ? SMA : EMA
+    let fastMAProducer = new OscillatorMAtype({
       period: input.fastPeriod,
       values: [],
-      format: v => {
-        return v
-      },
     })
-    var slowMAProducer = new oscillatorMAtype({
+    let slowMAProducer = new OscillatorMAtype({
       period: input.slowPeriod,
       values: [],
-      format: v => {
-        return v
-      },
     })
-    var signalMAProducer = new signalMAtype({
+    let signalMAProducer = new SignalMAtype({
       period: input.signalPeriod,
       values: [],
-      format: v => {
-        return v
-      },
     })
-    var format = this.format
     this.result = []
 
-    this.generator = (function*() {
-      var index = 0
-      var tick
-      var MACD: number | undefined,
-        signal: number | undefined,
-        histogram: number | undefined,
-        fast: number | undefined,
-        slow: number | undefined
+    this.generator = (function* g() {
+      let index = 0
+      let tick
+      let macd: number | undefined
+      let signal: number | undefined
+      let histogram: number | undefined
+      let fast: number | undefined
+      let slow: number | undefined
       while (true) {
         if (index < input.slowPeriod) {
           tick = yield
           fast = fastMAProducer.nextValue(tick)
           slow = slowMAProducer.nextValue(tick)
           index++
-          continue
+        } else {
+          if (fast && slow) {
+            macd = fast - slow
+            signal = signalMAProducer.nextValue(macd)
+          }
+          // @ts-ignore
+          histogram = macd - signal
+          // eslint-disable-next-line
+          tick = yield {
+            MACD: macd,
+            signal,
+            histogram: histogram || undefined,
+          }
+          fast = fastMAProducer.nextValue(tick)
+          slow = slowMAProducer.nextValue(tick)
         }
-        if (fast && slow) {
-          //Just for typescript to be happy
-          MACD = fast - slow
-          signal = signalMAProducer.nextValue(MACD)
-        }
-        //@ts-ignore
-        histogram = MACD - signal
-        tick = yield {
-          //fast : fast,
-          //slow : slow,
-          //@ts-ignore
-          MACD: format(MACD),
-          signal: signal ? format(signal) : undefined,
-          histogram: isNaN(histogram) ? undefined : format(histogram),
-        }
-        fast = fastMAProducer.nextValue(tick)
-        slow = slowMAProducer.nextValue(tick)
       }
     })()
 
     this.generator.next()
 
     input.values.forEach(tick => {
-      //@ts-ignore
-      var result = this.generator.next(tick)
-      if (result.value != undefined) {
+      // @ts-ignore
+      let result = this.generator.next(tick)
+      if (result.value !== undefined) {
         this.result.push(result.value)
       }
     })
   }
 
-  static calculate = macd
-
-  nextValue(price: number): MACDOutput | undefined {
-    //@ts-ignore
-    var result = this.generator.next(price).value
+  static calculate = (input: MACDInput): MACDOutput[] => {
+    Indicator.reverseInputs(input)
+    let { result } = new MACD(input)
+    if (input.reversedInput) {
+      result.reverse()
+    }
+    Indicator.reverseInputs(input)
     return result
   }
-}
 
-export function macd(input: MACDInput): MACDOutput[] {
-  Indicator.reverseInputs(input)
-  var result = new MACD(input).result
-  if (input.reversedInput) {
-    result.reverse()
+  nextValue(price: number): MACDOutput | undefined {
+    // @ts-ignore
+    let result = this.generator.next(price).value
+    return result
   }
-  Indicator.reverseInputs(input)
-  return result
 }

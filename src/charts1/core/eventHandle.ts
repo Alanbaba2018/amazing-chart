@@ -1,5 +1,5 @@
 import { CommonObject, CommonKeys } from '../typeof/type'
-import { getDevicePixelRatio } from '../util/helper'
+import { getDevicePixelRatio, isMobile } from '../util/helper'
 
 export default abstract class EventHandle {
   private eventListeners: {
@@ -8,6 +8,7 @@ export default abstract class EventHandle {
 
   public config: CommonObject = {
     devicePixelRatio: getDevicePixelRatio(),
+    isMobile: isMobile(),
   }
 
   public getConfig(): CommonObject {

@@ -1,176 +1,386 @@
-import { CandlestickItem, ChartType } from '../typeof/type'
-import { isNumber } from '../util/type-check'
+import { CandlestickItem, ChartType, ColorMap } from '../typeof/type'
+// import { isNumber } from '../util/type-check'
+import * as IndicatorHelper from '../indicator'
 
-interface MacdParams {
-  shortPeriod: number
-  longPeriod: number
-  signalPeriod: number
-  period: number
+export interface PlotItem {
+  time: number
+  value: number
 }
-interface BollParams {
-  period: number
-  standardDeviation: number
+interface DefaultProps {
+  readonly title: string
+  readonly isHistBase: boolean
+  readonly isScaleCenter: boolean
 }
-const EMA = {
-  title: 'EMA',
-  type: ChartType.Custom,
-  key: 'EMA',
-  accumulatePeriodData(seriesData: CandlestickItem[], period: number, source: string) {
-    let sum = 0
-    let i = 0
-    while (i < period) {
-      sum += seriesData[i][source]
-      i++
-    }
-    return sum
+export interface IndicatorResult {
+  data: PlotItem[]
+  chartType: ChartType
+  color: string
+  lineWidth?: number
+  [k: string]: any
+}
+interface IndicatorBase {
+  defaultProps: DefaultProps
+  getResult(data: CandlestickItem[], params: any, source: string): IndicatorResult[]
+}
+
+function combinData(seriesData: CandlestickItem[], lists: number[][]): PlotItem[][] {
+  return lists.map(values => {
+    const offset = seriesData.length - values.length
+    return values.map((val, _index) => ({ time: seriesData[_index + offset].time, value: val }))
+  })
+}
+const SMA: IndicatorBase = {
+  defaultProps: {
+    title: 'SMA',
+    isHistBase: true,
+    isScaleCenter: true,
   },
-  calculate(
+  getResult(seriesData: CandlestickItem[], { periods = [], source = 'open', colors = [] }) {
+    const prices = seriesData.map(item => item[source])
+    const results: IndicatorResult[] = []
+    periods.forEach((period, index) => {
+      const values: number[] = IndicatorHelper.SMA.calculate({ period, values: prices })
+      const [data] = combinData(seriesData, [values])
+      results.push({
+        data,
+        chartType: ChartType.Line,
+        color: colors[index],
+      })
+    })
+    return results
+  },
+}
+
+const VOL: IndicatorBase = {
+  defaultProps: {
+    title: 'VOL',
+    isHistBase: false,
+    isScaleCenter: false,
+  },
+  getResult(
     seriesData: CandlestickItem[],
-    params: { periods: number[] },
-    source: string = 'close',
-    overrideKey?: string,
+    { periods = [], source = 'volume', upColor = ColorMap.CandleRed, downColor = ColorMap.CandleGreen, colors = [] },
   ) {
-    params.periods.forEach(period => {
-      const sum = this.accumulatePeriodData(seriesData, period, source)
-      const SMA = sum / period
-      const propKey = overrideKey || `${this.key}${period}`
-      const coeff = 2.0 / (period + 1)
-      for (let i = period - 1; i < seriesData.length; i++) {
-        const current = seriesData[i]
-        if (!seriesData[i - 1] || !seriesData[i - 1][propKey]) {
-          current[propKey] = SMA
-        } else {
-          const lastEmaValue = seriesData[i - 1][propKey]
-          current[propKey] = current[source] * coeff + lastEmaValue * (1 - coeff)
-        }
-      }
+    const volumes = seriesData.map(item => item[source])
+    const results: IndicatorResult[] = []
+    periods.forEach((period, index) => {
+      const values: number[] = IndicatorHelper.SMA.calculate({ period, values: volumes })
+      const [data] = combinData(seriesData, [values])
+      results.push({
+        data,
+        chartType: ChartType.Line,
+        color: colors[index],
+      })
     })
-  },
-}
-
-const MACD = {
-  title: 'MACD',
-  type: ChartType.Custom,
-  key: 'MACD', // MACD line(DIFF)
-  oscillatorKey: 'OSC', // Oscillator(震荡指标)
-  signalKey: 'SIGNAL', // signal line(信号线)
-  calculate(seriesData: CandlestickItem[], params: MacdParams, source: string = 'open') {
-    const { longPeriod, shortPeriod, signalPeriod } = params
-    if (seriesData.length < longPeriod + shortPeriod) return
-    EMA.calculate(seriesData, { periods: [longPeriod, shortPeriod] }, source)
-    for (let i = longPeriod - 1; i < seriesData.length; i++) {
-      const current = seriesData[i]
-      if (isNumber(current[`${EMA.key}${longPeriod}`]) && isNumber(current[`${EMA.key}${shortPeriod}`])) {
-        current[this.key] = current[`${EMA.key}${shortPeriod}`] - current[`${EMA.key}${longPeriod}`]
-      }
+    const upData: PlotItem[] = []
+    const downData: PlotItem[] = []
+    for (let i = 0; i < seriesData.length; i++) {
+      const item = seriesData[i]
+      const list = item.close > item.open ? upData : downData
+      list.push({ time: item.time, value: volumes[i] })
     }
-    EMA.calculate(seriesData.slice(longPeriod - 1), { periods: [signalPeriod] }, this.key, this.signalKey)
-    for (let i = longPeriod - 1; i < seriesData.length; i++) {
-      const current = seriesData[i]
-      if (isNumber(current[`${this.key}`]) && isNumber(current[`${this.signalKey}`])) {
-        current[this.oscillatorKey] = current[`${this.key}`] - current[`${this.signalKey}`]
-      }
+    const extent = [Math.min(...volumes), Math.max(...volumes)]
+    results.push({
+      data: upData,
+      chartType: ChartType.Bar,
+      color: upColor,
+      extent,
+    })
+    results.push({
+      data: downData,
+      chartType: ChartType.Bar,
+      color: downColor,
+      extent,
+    })
+    return results
+  },
+}
+
+const EMA: IndicatorBase = {
+  defaultProps: {
+    title: 'EMA',
+    isHistBase: true,
+    isScaleCenter: true,
+  },
+  getResult(seriesData: CandlestickItem[], { periods = [], source = 'open', colors = [] }) {
+    const prices = seriesData.map(item => item[source])
+    const results: IndicatorResult[] = []
+    periods.forEach((period, index) => {
+      const values: number[] = IndicatorHelper.EMA.calculate({ period, values: prices })
+      const offset = seriesData.length - values.length
+      const data = values.map((val, _index) => ({ time: seriesData[_index + offset].time, value: val }))
+      results.push({
+        data,
+        chartType: ChartType.Line,
+        color: colors[index],
+      })
+    })
+    return results
+  },
+}
+
+const WMA: IndicatorBase = {
+  defaultProps: {
+    title: 'WMA',
+    isHistBase: true,
+    isScaleCenter: true,
+  },
+  getResult(seriesData: CandlestickItem[], { periods = [], source = 'open', colors = [] }) {
+    const prices = seriesData.map(item => item[source])
+    const results: IndicatorResult[] = []
+    periods.forEach((period, index) => {
+      const values: number[] = IndicatorHelper.WMA.calculate({ period, values: prices })
+      const offset = seriesData.length - values.length
+      const data = values.map((val, _index) => ({ time: seriesData[_index + offset].time, value: val }))
+      results.push({
+        data,
+        chartType: ChartType.Line,
+        color: colors[index],
+      })
+    })
+    return results
+  },
+}
+
+const MACD: IndicatorBase = {
+  defaultProps: {
+    title: 'MACD',
+    isHistBase: false,
+    isScaleCenter: true,
+  },
+  getResult(
+    seriesData: CandlestickItem[],
+    {
+      fastPeriod = 10,
+      slowPeriod = 26,
+      signalPeriod = 9,
+      mainColor = ColorMap.White,
+      signalColor = ColorMap.White,
+      upColor = ColorMap.CandleRed,
+      downColor = ColorMap.CandleGreen,
+      source = 'open',
+    },
+  ) {
+    const prices = seriesData.map(item => item[source])
+    const results: IndicatorResult[] = []
+    const _results = IndicatorHelper.MACD.calculate({
+      fastPeriod,
+      slowPeriod,
+      signalPeriod,
+      values: prices,
+    })
+    const { macd, signal, histogram } = _results.reduce(
+      (acc: { macd: number[]; signal: number[]; histogram: number[] }, item) => {
+        item.MACD && acc.macd.push(item.MACD)
+        item.signal && acc.signal.push(item.signal)
+        item.histogram && acc.histogram.push(item.histogram)
+        return acc
+      },
+      { macd: [], signal: [], histogram: [] },
+    )
+    const [mainData, signalData, histogramData] = combinData(seriesData, [macd, signal, histogram])
+    results.push({
+      data: mainData,
+      chartType: ChartType.Line,
+      color: mainColor,
+    })
+    results.push({
+      data: signalData,
+      chartType: ChartType.Line,
+      color: signalColor,
+    })
+    const upData: PlotItem[] = []
+    const downData: PlotItem[] = []
+    for (let i = 0; i < histogramData.length; i++) {
+      const list = histogramData[i].value > 0 ? upData : downData
+      list.push(histogramData[i])
     }
-  },
-}
-
-const SMA = {
-  title: 'SMA',
-  type: ChartType.Custom,
-  key: 'SMA',
-  calculate(seriesData: CandlestickItem[], params: { periods: number[] }, source: string = 'open') {
-    params.periods.forEach(period => {
-      if (period > seriesData.length) return
-      let sum = EMA.accumulatePeriodData(seriesData, period - 1, source)
-      for (let i = period - 1; i < seriesData.length; i++) {
-        const current = seriesData[i]
-        sum += current[source]
-        current[`${this.key}${period}`] = sum / period
-        sum -= seriesData[i - period + 1][source]
-      }
+    results.push({
+      data: upData,
+      chartType: ChartType.Bar,
+      color: upColor,
     })
-  },
-}
-
-const MOMENTUM = {
-  title: 'MOMENTUM',
-  type: ChartType.Custom,
-  key: 'MOMENTUM',
-  calculate(seriesData: CandlestickItem[], params: { periods: number[] }, source: string = 'close') {
-    params.periods.forEach(period => {
-      for (let i = period; i < seriesData.length; i++) {
-        const current = seriesData[i]
-        current[`${this.key}${period}`] = current[source] - seriesData[i - period][source]
-      }
+    results.push({
+      data: downData,
+      chartType: ChartType.Bar,
+      color: downColor,
     })
+    return results
   },
 }
 
-const ATR = {
-  title: 'ATR',
-  type: ChartType.Custom,
-  key: 'ATR',
-  getTR(current: CandlestickItem, prev: CandlestickItem, source: string = 'close'): number {
-    const HL = current.high - current.low
-    if (!prev) return HL
-    const HCp = Math.abs(current.high - prev[source])
-    const LCp = Math.abs(current.low - prev[source])
-    return Math.max(HL, HCp, LCp)
+const RSI: IndicatorBase = {
+  defaultProps: {
+    title: 'RSI',
+    isHistBase: false,
+    isScaleCenter: true,
   },
-  calculate(seriesData: CandlestickItem[], params: { periods: number[] }, source: string = 'close') {
-    params.periods.forEach(period => {
-      let TR = 0
-      for (let i = 0; i < seriesData.length; i++) {
-        const current = seriesData[i]
-        const prev = seriesData[i - 1]
-        const currentTR = this.getTR(current, prev, source)
-        if (i > period - 1) {
-          current[`${this.key}${period}`] = (prev[`${this.key}${period}`] * (period - 1) + currentTR) / period
-        } else if (i === period - 1) {
-          current[`${this.key}${period}`] = TR / i
-        } else {
-          TR += currentTR
-        }
-      }
+  getResult(seriesData: CandlestickItem[], { periods = [], source = 'open', colors = [] }) {
+    const prices = seriesData.map(item => item[source])
+    const results: IndicatorResult[] = []
+    periods.forEach((period, index) => {
+      const values: number[] = IndicatorHelper.RSI.calculate({ period, values: prices })
+      const [data] = combinData(seriesData, [values])
+      results.push({
+        data,
+        chartType: ChartType.Line,
+        color: colors[index],
+      })
     })
+    return results
   },
 }
 
-const BOLL = {
-  title: 'BOLL',
-  type: ChartType.Custom,
-  key: 'BOLL',
-  upKey: 'UP',
-  mdKey: 'MB',
-  dnKey: 'DN',
-  getStandardDeviation(seriesData: CandlestickItem[], mean: number, source: string) {
-    const variance = seriesData.reduce((acc, cur) => acc + (cur[source] - mean) ** 2, 0)
-    const std = Math.sqrt(variance / (seriesData.length - 1))
-    return std
+const BOLL: IndicatorBase = {
+  defaultProps: {
+    title: 'BOLL',
+    isHistBase: true,
+    isScaleCenter: true,
   },
-  calculate(seriesData: CandlestickItem[], params: BollParams, source: string = 'close') {
-    const { period, standardDeviation } = params
-    let sum = 0
-    let mean = 0
-    let stdDev = 0
-    if (seriesData.length < period) return
-    for (let i = period; i <= seriesData.length; i++) {
-      const sliceData = seriesData.slice(i - period, i)
-      sum = sliceData.reduce((acc, cur) => acc + cur[source], 0)
-      mean = sum / period
-      stdDev = this.getStandardDeviation(sliceData, mean, source)
-      seriesData[i - 1][`${this.mdKey}`] = mean
-      seriesData[i - 1][`${this.upKey}`] = mean + standardDeviation * stdDev
-      seriesData[i - 1][`${this.dnKey}`] = mean - standardDeviation * stdDev
-    }
+  getResult(seriesData: CandlestickItem[], { period = 21, stdDev = 2, source = 'open', colors = [] }) {
+    const prices = seriesData.map(item => item[source])
+    const results: IndicatorResult[] = []
+    const _results = IndicatorHelper.BollingerBands.calculate({ period, values: prices, stdDev })
+    const { middle, upper, lower } = _results.reduce(
+      (acc: { middle: number[]; upper: number[]; lower: number[] }, item) => {
+        acc.middle.push(item.middle)
+        acc.upper.push(item.upper)
+        acc.lower.push(item.lower)
+        return acc
+      },
+      { middle: [], upper: [], lower: [] },
+    )
+    const [middleData, upperData, lowerData] = combinData(seriesData, [middle, upper, lower])
+    results.push({
+      data: middleData,
+      chartType: ChartType.Line,
+      color: colors[0],
+    })
+    results.push({
+      data: upperData,
+      chartType: ChartType.Line,
+      color: colors[1],
+    })
+    results.push({
+      data: lowerData,
+      chartType: ChartType.Line,
+      color: colors[2],
+    })
+    return results
   },
 }
 
-const VOL = {
-  title: 'VOL',
-  type: ChartType.Standard,
-  key: 'VOL',
-  calculate() {},
+const KDJ: IndicatorBase = {
+  defaultProps: {
+    title: 'KDJ',
+    isHistBase: false,
+    isScaleCenter: true,
+  },
+  getResult(seriesData: CandlestickItem[], { periods = [], colors = [], lineWidth = 1, source = 'close' }) {
+    const values = seriesData.map(item => item[source])
+    const results: IndicatorResult[] = []
+    const _results = IndicatorHelper.KDJ.calculate({ periods, values })
+    const { k, d, j } = _results.reduce(
+      (acc: { k: number[]; d: number[]; j: number[] }, item) => {
+        acc.k.push(item.k)
+        acc.d.push(item.d)
+        acc.j.push(item.j)
+        return acc
+      },
+      { k: [], d: [], j: [] },
+    )
+    const [kData, dData, jData] = combinData(seriesData, [k, d, j])
+    results.push({
+      data: kData,
+      chartType: ChartType.Line,
+      color: colors[0] || ColorMap.White,
+      lineWidth,
+    })
+    results.push({
+      data: dData,
+      chartType: ChartType.Line,
+      color: colors[1] || ColorMap.White,
+      lineWidth,
+    })
+    results.push({
+      data: jData,
+      chartType: ChartType.Line,
+      color: colors[2] || ColorMap.White,
+      lineWidth,
+    })
+    return results
+  },
 }
 
-export { EMA, MACD, SMA, MOMENTUM, ATR, BOLL, VOL }
+// const ATR = {
+//   title: 'ATR',
+//   type: ChartType.Custom,
+//   key: 'ATR',
+//   getTR(current: CandlestickItem, prev: CandlestickItem, source: string = 'close'): number {
+//     const HL = current.high - current.low
+//     if (!prev) return HL
+//     const HCp = Math.abs(current.high - prev[source])
+//     const LCp = Math.abs(current.low - prev[source])
+//     return Math.max(HL, HCp, LCp)
+//   },
+//   calculate(seriesData: CandlestickItem[], params: { periods: number[] }, source: string = 'close') {
+//     params.periods.forEach(period => {
+//       let TR = 0
+//       for (let i = 0; i < seriesData.length; i++) {
+//         const current = seriesData[i]
+//         const prev = seriesData[i - 1]
+//         const currentTR = this.getTR(current, prev, source)
+//         if (i > period - 1) {
+//           current[`${this.key}${period}`] = (prev[`${this.key}${period}`] * (period - 1) + currentTR) / period
+//         } else if (i === period - 1) {
+//           current[`${this.key}${period}`] = TR / i
+//         } else {
+//           TR += currentTR
+//         }
+//       }
+//     })
+//   },
+// }
+
+// const BOLL = {
+//   title: 'BOLL',
+//   type: ChartType.Custom,
+//   key: 'BOLL',
+//   upKey: 'UP',
+//   mdKey: 'MB',
+//   dnKey: 'DN',
+//   getStandardDeviation(seriesData: CandlestickItem[], mean: number, source: string) {
+//     const variance = seriesData.reduce((acc, cur) => acc + (cur[source] - mean) ** 2, 0)
+//     const std = Math.sqrt(variance / (seriesData.length - 1))
+//     return std
+//   },
+//   calculate(seriesData: CandlestickItem[], params: BollParams, source: string = 'close') {
+//     const { period, standardDeviation } = params
+//     let sum = 0
+//     let mean = 0
+//     let stdDev = 0
+//     if (seriesData.length < period) return
+//     for (let i = period; i <= seriesData.length; i++) {
+//       const sliceData = seriesData.slice(i - period, i)
+//       sum = sliceData.reduce((acc, cur) => acc + cur[source], 0)
+//       mean = sum / period
+//       stdDev = this.getStandardDeviation(sliceData, mean, source)
+//       seriesData[i - 1][`${this.mdKey}`] = mean
+//       seriesData[i - 1][`${this.upKey}`] = mean + standardDeviation * stdDev
+//       seriesData[i - 1][`${this.dnKey}`] = mean - standardDeviation * stdDev
+//     }
+//   },
+// }
+
+// export { EMA, MACD, SMA, MOMENTUM, ATR, BOLL, VOL }
+const module = {
+  VOL,
+  SMA,
+  EMA,
+  WMA,
+  MACD,
+  RSI,
+  BOLL,
+  KDJ,
+}
+export default module

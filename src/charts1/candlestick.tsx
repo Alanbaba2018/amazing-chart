@@ -1,5 +1,14 @@
 import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
-import { CommonObject, CommonContextProps } from './typeof/type'
+import {
+  CommonObject,
+  CandlestickItem,
+  Margin,
+  xAxisConfig,
+  yAxisConfig,
+  TimelineConfig,
+  IndicatorView,
+  CommonContextProps,
+} from './typeof/type'
 import CandlestickPanel from './core/candlestick'
 
 const propsToUpdate: string[] = [
@@ -14,8 +23,19 @@ const propsToUpdate: string[] = [
   'timeline',
   'indicators',
 ]
+interface CandlestickProps extends CommonContextProps {
+  seriesData?: CandlestickItem[]
+  margin?: Margin
+  background?: string
+  xAxis?: xAxisConfig
+  yAxis?: yAxisConfig
+  crossHair?: any
+  candlestick?: any
+  timeline?: TimelineConfig
+  indicators?: IndicatorView[]
+}
 
-const applyNodeProps = (instance: CandlestickPanel, props: CommonObject) => {
+const applyNodeProps = (instance: CandlestickPanel, props: CandlestickProps) => {
   const oldProps = instance.getConfig()
   const updatedProps: CommonObject = {}
   let hasUpdates = false
@@ -30,15 +50,16 @@ const applyNodeProps = (instance: CandlestickPanel, props: CommonObject) => {
     instance.update()
   }
 }
-const Candlestick = forwardRef((props: CommonContextProps, ref) => {
+const Candlestick = forwardRef((props: CandlestickProps, ref) => {
   const containerRef = useRef(null)
   const candlestickRef = useRef<CandlestickPanel>()
+  const { seriesData, margin, background, xAxis, yAxis, crossHair, candlestick, timeline, indicators } = props
   useImperativeHandle(ref, () => ({
     getCandlestick: () => candlestickRef.current,
   }))
   useEffect(() => {
     if (!candlestickRef.current) {
-      const validProps = {}
+      const validProps: CommonObject = {}
       propsToUpdate.forEach(key => {
         if (props[key] !== undefined) {
           validProps[key] = props[key]
@@ -48,11 +69,13 @@ const Candlestick = forwardRef((props: CommonContextProps, ref) => {
         container: containerRef.current as any,
         ...validProps,
       })
-      candlestickRef.current.update()
+      if (validProps.seriesData && validProps.seriesData.length > 0) {
+        candlestickRef.current.update()
+      }
     } else {
       applyNodeProps(candlestickRef.current, props)
     }
-  })
+  }, [seriesData, margin, background, xAxis, yAxis, crossHair, candlestick, timeline, indicators, props])
   return <div ref={containerRef} className={props.className} style={props.style} />
 })
 
