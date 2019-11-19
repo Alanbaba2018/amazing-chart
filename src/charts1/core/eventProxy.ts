@@ -108,7 +108,7 @@ const EventProxy = {
     // eventName + nameSpace is only eventID
     const { eventName, nameSpace, handler } = this.getEventName(eventType)
     if (!eventName) return
-    const _handler = handler.bind(null, callback)
+    const _handler = handler.bind(null, callback as any)
     let eventObject = this.eventPool.get(target)
     if (!eventObject) {
       const eventMap = new Map()

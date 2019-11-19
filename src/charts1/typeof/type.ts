@@ -125,10 +125,9 @@ export enum IndicatorType {
 }
 export interface IndicatorView {
   type: IndicatorType
-  params: { [k: string]: any }
-  styles: CommonObject
-  isHistBase: boolean
-  isScaleCenter: boolean
+  params?: { [k: string]: any }
+  isHistBase?: boolean
+  isScaleCenter?: boolean
 }
 
 export enum ColorMap {

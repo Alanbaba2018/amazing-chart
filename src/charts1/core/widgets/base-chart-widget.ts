@@ -15,7 +15,9 @@ export default abstract class BaseChartWidget extends IWidget {
   }
 
   private _initEvents() {
-    this.on('mousemove', this.mousemove.bind(this))
+    const isMobile = this.getAttr('isMobile')
+    // remove mousemove event when env is mobile
+    !isMobile && this.on('mousemove', this.mousemove.bind(this))
     this.on('mouseout', this.onmouseout.bind(this))
     this.on('mousedown', this.onmousedown.bind(this))
     this.on('mousewheel', this.onmousewheel.bind(this))

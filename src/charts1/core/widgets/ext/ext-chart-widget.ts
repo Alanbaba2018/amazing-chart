@@ -12,7 +12,8 @@ export default class ExtChartWidget extends BaseChartWidget {
 
   constructor() {
     super()
-    this.setAttr('showClose', true)
+    const isMobile = this.getAttr('isMobile')
+    this.setAttr('showClose', !isMobile)
   }
 
   public render(drawMode: DrawMode) {
