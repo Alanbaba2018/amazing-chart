@@ -118,9 +118,9 @@ export default abstract class BaseChartWidget extends IWidget {
       const { clientX: mClientX, clientX1: mClientX1 } = e
       const dis2 = Math.abs(mClientX - mClientX1)
       if (dis2 > dis1) {
-        parent.zoomIn(centerTime)
-      } else {
         parent.zoomOut(centerTime)
+      } else {
+        parent.zoomIn(centerTime)
       }
       dis1 = dis2
     })

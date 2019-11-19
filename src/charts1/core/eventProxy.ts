@@ -50,7 +50,7 @@ const MobileEvents = {
     eventName: 'touchstart',
     handler(callback: Function, evt: TouchEvent) {
       const e = { originEvent: evt }
-      Array.from(evt.changedTouches).forEach((touch, index) => {
+      Array.from(evt.targetTouches).forEach((touch, index) => {
         const x = index === 0 ? 'clientX' : `clientX${index}`
         const y = index === 0 ? 'clientY' : `clientY${index}`
         e[x] = touch.clientX
@@ -63,7 +63,7 @@ const MobileEvents = {
     eventName: 'touchmove',
     handler(callback: Function, evt: TouchEvent) {
       const e = { originEvent: evt }
-      Array.from(evt.changedTouches).forEach((touch, index) => {
+      Array.from(evt.touches).forEach((touch, index) => {
         const x = index === 0 ? 'clientX' : `clientX${index}`
         const y = index === 0 ? 'clientY' : `clientY${index}`
         e[x] = touch.clientX
