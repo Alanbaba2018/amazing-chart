@@ -95,7 +95,7 @@ export default abstract class BaseChartWidget extends IWidget {
 
   private onmousedown(evt: any) {
     const _evt = evt.originEvent as TouchEvent
-    if (_evt.touches && _evt.touches.length === 2) {
+    if (_evt.targetTouches && _evt.targetTouches.length === 2) {
       this.onmousescale(evt)
       return
     }
@@ -117,6 +117,8 @@ export default abstract class BaseChartWidget extends IWidget {
     this.on('mousemove.mousedown', (e: any) => {
       const { clientX: mClientX, clientX1: mClientX1 } = e
       const dis2 = Math.abs(mClientX - mClientX1)
+      const diff = Math.abs(dis2 - dis1)
+      if (diff < 5) return
       if (dis2 > dis1) {
         parent.zoomOut(centerTime)
       } else {
