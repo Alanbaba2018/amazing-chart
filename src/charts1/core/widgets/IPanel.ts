@@ -32,7 +32,7 @@ interface IPanelOptions {
 export default class IPanel extends IBound {
   public widgets: IWidget[] = []
 
-  private defaultConfig = { iconSize: 10, margin: 5 }
+  private defaultConfig = { iconSize: 10, margin: 5, isShowClose: false }
 
   private _isWaiting: boolean = false
 
@@ -74,9 +74,6 @@ export default class IPanel extends IBound {
     this.setAttrs(options)
     this._panelType = panelType
     this.setAttrs({ ...options, ...this.defaultConfig })
-    if (this.getAttr('isMobile')) {
-      this.setAttr('isShowClose', false)
-    }
     this._initWidgets()
     this._initEvents()
   }
