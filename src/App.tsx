@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import './App.css';
 import Candlestick from './charts1/candlestick';
 import candlestickJson from './data.json';
-import { ViewType } from './charts1/typeof/type';
+import { IndicatorType } from './charts1/typeof/type';
 
 export default function App() {
   let current = Date.now()
@@ -19,13 +19,7 @@ export default function App() {
     className: "candlestick-chart",
     seriesData: seriesData,
     indicators: [{
-      type: ViewType.SMA,
-      params: {
-        periods: [14],
-      },
-      styles: {
-        colors: ['#00ff00']
-      }
+      type: IndicatorType.VOL,
     }],
     ref
   };
