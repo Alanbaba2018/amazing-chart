@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
+import React, { useEffect, useRef, forwardRef, useImperativeHandle, CSSProperties } from 'react'
 import {
   CommonObject,
   CandlestickItem,
@@ -76,7 +76,8 @@ const Candlestick = forwardRef((props: CandlestickProps, ref) => {
       applyNodeProps(candlestickRef.current, props)
     }
   }, [seriesData, margin, background, xAxis, yAxis, crossHair, candlestick, timeline, indicators, props])
-  return <div ref={containerRef} className={props.className} style={{...{width: '100%', height: '100%', position: 'relative'}, ...props.style}} />
+  const defaultStyle: CSSProperties = { position: 'relative', width: '100%', height: '100%' }
+  return <div ref={containerRef} className={props.className} style={{ ...defaultStyle, ...props.style }} />
 })
 
 export default Candlestick

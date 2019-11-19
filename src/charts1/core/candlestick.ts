@@ -230,6 +230,7 @@ export default class Candlestick extends BaseView {
       const centerTime = (timeDomain.getMinValue() + timeDomain.getMaxValue()) / 2
       this.updateContainerSize()
       this.setAxis(centerTime)
+      this.setVisibleViewHeight()
       this.resizeAllPanelBound()
     }
     const background = this.getAttr('background')
@@ -334,8 +335,7 @@ export default class Candlestick extends BaseView {
   }
 
   public initWidgets() {
-    const { margin, timeline, xAxis, height } = this.getConfig()
-    this._visibleViewHeight = height - margin.top - margin.bottom - timeline.height - xAxis.height
+    this.setVisibleViewHeight()
     const basePanel = new IPanel(PanelType.BASE, { indicatorType: IndicatorType.CANDLE, isScaleCenter: true })
     const timeAxisWidget = new TimeAxisWidget()
     const timelineWidget = new TimelineWidget()
@@ -522,6 +522,11 @@ export default class Candlestick extends BaseView {
   }
 
   public destroy() {}
+
+  private setVisibleViewHeight() {
+    const { margin, timeline, xAxis, height } = this.getConfig()
+    this._visibleViewHeight = height - margin.top - margin.bottom - timeline.height - xAxis.height
+  }
 
   private initialData() {
     const seriesData = this.getSeriesData()
