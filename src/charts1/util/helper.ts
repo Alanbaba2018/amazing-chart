@@ -242,7 +242,8 @@ export function isBoundContain(bound: Bound, point: Point): boolean {
 // ---------------End geometry---------------------
 
 export function getDevicePixelRatio(): number {
-  return window.devicePixelRatio || 1
+  // return window.devicePixelRatio || 1
+  return 2
 }
 
 // ---------------Start format candlestick data------
