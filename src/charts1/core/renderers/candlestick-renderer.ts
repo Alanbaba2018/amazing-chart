@@ -18,7 +18,6 @@ export default class CandlestickRenderer extends IRenderer {
   }
 
   public drawCandlestickBars = (ctx: CanvasRenderingContext2D, bars: CandlestickBar[], config: CommonObject) => {
-    // draw red bars
     ctx.fillStyle = config[Trend.Up].fillStyle
     ctx.strokeStyle = config[Trend.Up].strokeStyle
     ctx.lineWidth = config[Trend.Up].lineWidth
@@ -30,7 +29,6 @@ export default class CandlestickRenderer extends IRenderer {
         if (width < 2) {
           Canvas.drawLine(ctx, bar.x, -bar.lowY, bar.x, -bar.highY)
         } else {
-          // Canvas.strokeRect(ctx, x, y, width, height)
           Canvas.fillRect(ctx, x, y, width, height)
           Canvas.drawLine(ctx, bar.x, -bar.highY, bar.x, y)
           Canvas.drawLine(ctx, bar.x, -bar.lowY, bar.x, y + height)

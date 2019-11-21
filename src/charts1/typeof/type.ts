@@ -28,7 +28,6 @@ export interface CandlestickItem {
   low: number
   close: number
   volume: number
-  [k: string]: any
 }
 
 export interface TickData {

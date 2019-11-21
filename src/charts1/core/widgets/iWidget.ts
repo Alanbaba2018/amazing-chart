@@ -14,6 +14,14 @@ export default abstract class IWidget extends IBound {
     return this.getRoot().getXAxis()
   }
 
+  public get root(): Candlestick {
+    return this.getRoot()
+  }
+
+  public get TitleContainer(): HTMLElement {
+    return this.root.titleContainer
+  }
+
   public remove() {
     const parent = this.getParent()
     if (parent instanceof IPanel) {

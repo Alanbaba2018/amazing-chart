@@ -6,6 +6,8 @@ export default abstract class EventHandle {
     [k: string]: Array<{ name: string; handler: Function; global?: boolean }>
   } = {}
 
+  private watchMap: Map<string, HTMLElement[]> = new Map()
+
   public config: CommonObject = {
     devicePixelRatio: getDevicePixelRatio(),
     isMobile: isMobile(),
@@ -77,6 +79,29 @@ export default abstract class EventHandle {
     evt.target = evt.target || this
     this._fire(eventType, evt)
     return this
+  }
+
+  public watchProperty(obj: Object, key: string, target: HTMLElement) {
+    this.watchMap.set(key, [target])
+    Object.defineProperty(obj, key, {
+      get() {
+        return obj[key]
+      },
+      set() {},
+    })
+  }
+
+  public setWatchProperty(obj: Object, key: string, value: string, styles: Object = {}) {
+    obj[key] = value
+    const watchList = this.watchMap.get(key)
+    if (watchList) {
+      watchList.forEach(ele => {
+        ele.textContent = value
+        Object.keys(styles).forEach(cssKey => {
+          ele.style[cssKey] = styles[cssKey]
+        })
+      })
+    }
   }
 
   private _off(type: string, namespace?: string, callback?: Function) {

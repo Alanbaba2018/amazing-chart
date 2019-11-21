@@ -75,7 +75,13 @@ const Candlestick = forwardRef((props: CandlestickProps, ref) => {
       applyNodeProps(candlestickRef.current, props)
     }
   }, [seriesData, margin, background, xAxis, yAxis, crossHair, candlestick, timeline, indicators, props])
-  const defaultStyle: CSSProperties = { position: 'relative', width: '100%', height: '100%' }
+  const defaultStyle: CSSProperties = {
+    position: 'relative',
+    width: '100%',
+    height: '100%',
+    fontFamily: 'sans-serif',
+    lineHeight: 1,
+  }
   return <div ref={containerRef} className={props.className} style={{ ...defaultStyle, ...props.style }} />
 })
 

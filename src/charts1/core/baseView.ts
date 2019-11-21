@@ -83,12 +83,14 @@ export default abstract class BaseView extends EventHandle {
     }
   }
 
+  // trigger when first initial
   public initPanelBound() {
     this.eachPanels(panel => {
       panel.setViewBound()
     })
   }
 
+  // trigger when close or add panel
   public updatePanelBound() {
     const allWeight = this.panels.reduce(
       (acc: number, cur: IPanel | IWidget) => (cur instanceof IPanel ? acc + cur.weight : acc),
@@ -100,6 +102,7 @@ export default abstract class BaseView extends EventHandle {
     })
   }
 
+  // trigger when window resize
   public resizeAllPanelBound() {
     this.eachPanels(panel => {
       panel instanceof IPanel ? panel.updateViewBound() : panel.setViewBound()

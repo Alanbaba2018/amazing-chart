@@ -1,4 +1,4 @@
-import { Point, TimeScaleType, Bound, CommonObject, TimeScale, CandlestickItem } from '../typeof/type'
+import { Point, TimeScaleType, Bound, CommonObject, TimeScale } from '../typeof/type'
 import { Zero, CanvasContextProps, TimeInterval } from '../typeof/constant'
 import { isNumber, isString } from './type-check'
 
@@ -31,6 +31,12 @@ export function createCanvasElement(
   return canvas
 }
 
+export function createElement(type: string, style: CommonObject = {}): HTMLElement {
+  const element = document.createElement(type)
+  setElementStyle(element, style)
+  return element
+}
+
 export function setCanvasContextStyle(ctx: CanvasRenderingContext2D, config: CommonObject) {
   CanvasContextProps.forEach(key => {
     if (config[key] !== undefined) {
@@ -47,9 +53,16 @@ export function cloneCanvas(targetCanvas: HTMLCanvasElement): HTMLCanvasElement 
   ctx.drawImage(targetCanvas, 0, 0)
   return canvas
 }
+
+export function measureTextWidth(text: string): number {
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
+  const textMetric = ctx.measureText(text)
+  return textMetric.width
+}
 // -------------------End canvas api--------------------
 
-export function setElementStyle(element: HTMLElement, styles: { [k: string]: any }) {
+export function setElementStyle(element: HTMLElement, styles = {}) {
   Object.keys(styles).forEach(key => {
     element.style[key] = styles[key]
   })
@@ -222,8 +235,24 @@ export function getMonthFirstDayTimes(start: number, end: number, step: number =
 // ---------------End time & date---------------
 
 // ---------------Start number------------------
-export function formatNumber(n: number): string {
-  return `0${n}`.slice(`${n}`.length - 1)
+export function formatNumber(num: number, digits = 2): string {
+  const si = [
+    { value: 1, symbol: '' },
+    { value: 1e3, symbol: 'K' },
+    { value: 1e6, symbol: 'M' },
+    { value: 1e9, symbol: 'G' },
+    { value: 1e12, symbol: 'T' },
+    { value: 1e15, symbol: 'P' },
+    { value: 1e18, symbol: 'E' },
+  ]
+  const rx = /\.0+$|(\.[0-9]*[1-9])0+$/
+  let i
+  for (i = si.length - 1; i > 0; i--) {
+    if (num >= si[i].value) {
+      break
+    }
+  }
+  return (num / si[i].value).toFixed(digits).replace(rx, '$1') + si[i].symbol
 }
 // ---------------End number---------------------
 
@@ -244,27 +273,6 @@ export function isBoundContain(bound: Bound, point: Point): boolean {
 export function getDevicePixelRatio(): number {
   return window.devicePixelRatio || 1
 }
-
-// ---------------Start format candlestick data------
-
-export function calculateMA(candleList: CandlestickItem[], index: number, period: number) {
-  const item = candleList[index]
-  if (index < period - 1) {
-    item[`MA${period}`] = NaN
-    return
-  }
-  const lastMA = candleList[index - 1][`MA${period}`]
-  if (isNaN(lastMA)) {
-    let sum = 0
-    for (let i = index; i > index - period; i--) {
-      sum += candleList[i].close
-    }
-    item[`MA${period}`] = Number((sum / period).toFixed(2))
-  } else {
-    item[`MA${period}`] = Number((lastMA - candleList[index - period].close / period + item.close / period).toFixed(2))
-  }
-}
-// -------------End calculate cnadlestick indicator--------
 
 export function isMobile(): boolean {
   const u = navigator.userAgent

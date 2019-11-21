@@ -6,7 +6,7 @@ import TimeAxis from '../../model/time-axis'
 import IPanel from './IPanel'
 
 export default abstract class BaseChartWidget extends IWidget {
-  private defaultConfig = { zIndex: 1, showClose: false, iconSize: 40, margin: 10 }
+  private defaultConfig = { zIndex: 1, showClose: false, iconSize: 40, margin: 10, titleInfo: {} }
 
   private _isScaling: boolean = false
 
@@ -65,7 +65,8 @@ export default abstract class BaseChartWidget extends IWidget {
     const viewPoint = this.transformPointToView(evt.point)
     const xValue = xAxis.getValueOfCoord(viewPoint.x)
     // set currentTime
-    root.setCurrentTime(xValue)
+    root.setAttr('currentTime', xValue)
+    // root.setCurrentTime(xValue)
     // set x to unit center
     viewPoint.x = xAxis.getCoordOfValue(xValue)
     Canvas.clearRect(_hitCtx)

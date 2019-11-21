@@ -11,6 +11,8 @@ import {
   StandardBar,
   DrawMode,
   Point,
+  CommonKeys,
+  ColorMap,
 } from '../../typeof/type'
 import { GapWidgetHeight } from '../../typeof/constant'
 import Canvas from '../canvas'
@@ -20,7 +22,14 @@ import CandlestickWidget from './candlestick-widget'
 import PriceAxisWidget from './price-axis-widget'
 import ExtChartWidget from './ext/ext-chart-widget'
 import Indicator, { PlotItem, IndicatorResult } from '../indicator'
-import { setElementStyle, isBoundContain } from '../../util/helper'
+import {
+  setElementStyle,
+  isBoundContain,
+  formatNumber,
+  measureTextWidth,
+  createElement,
+  formatTime,
+} from '../../util/helper'
 
 interface IPanelOptions {
   indicatorType: IndicatorType
@@ -28,10 +37,16 @@ interface IPanelOptions {
   [k: string]: any
 }
 
+interface Label {
+  label: string
+  key?: string
+  styles?: Object
+}
+
 export default class IPanel extends IBound {
   public widgets: IWidget[] = []
 
-  private defaultConfig = { iconSize: 10, margin: 5, isShowClose: false }
+  private defaultConfig = { iconSize: 10, margin: 5, isShowClose: false, titleInfo: {} }
 
   private _isWaiting: boolean = false
 
@@ -44,7 +59,13 @@ export default class IPanel extends IBound {
 
   private _yAxis: Axis
 
+  private _yAxisWidth: number = 60
+
+  private _titleContainer: HTMLElement
+
   private _result: IndicatorResult[] = []
+
+  private _isFirstWatch: boolean = true
 
   public get yAxis(): Axis {
     return this._yAxis
@@ -66,19 +87,27 @@ export default class IPanel extends IBound {
     return this._result
   }
 
+  public get yAxisWidth(): number {
+    return this._yAxisWidth
+  }
+
+  public get titleContainer(): HTMLElement {
+    return this._titleContainer
+  }
+
   constructor(panelType: PanelType, options: IPanelOptions) {
     super()
-    this.setAttrs(options)
     this._panelType = panelType
     this.setAttrs({ ...options, ...this.defaultConfig })
     this._initWidgets()
-    this._initEvents()
   }
 
   public setYAxis() {
     const yExtent = this._getYExtent()
     const isScaleCenter = this.getAttr('isScaleCenter')
     const padding: number = 5
+    const middleY = formatNumber((yExtent[0] + yExtent[1]) / 2)
+    this._yAxisWidth = measureTextWidth(`${middleY}`)
     if (isScaleCenter) {
       this._yAxis = new Axis(yExtent, [padding, this.bound.height - padding])
     } else {
@@ -100,6 +129,7 @@ export default class IPanel extends IBound {
       throw new Error('Current Node had parent, Pls do not set parent repeatly!')
     }
     this._parent = parent
+    this._afterSetParent()
   }
 
   public getParent(): Candlestick {
@@ -147,13 +177,14 @@ export default class IPanel extends IBound {
       width: width - margin.left,
       height: viewHeight,
     })
-    this.updateWidgetsBound()
+    this.setWidgetsBound()
+    this._initTitleContainer()
   }
 
   public updateViewBound(allWeight: number = 1) {
     this._weight /= allWeight
     this.setBound(this.getUpdatedBound())
-    this.updateWidgetsBound()
+    this.setWidgetsBound()
     this.setYAxis()
   }
 
@@ -164,11 +195,14 @@ export default class IPanel extends IBound {
     const updatedHeight = this.bound.height + dh
     this._weight = updatedHeight / clearHeight
     this.setBound({ ...this.bound, y: this.bound.y + dy, height: updatedHeight })
-    this.updateWidgetsBound()
+    this.setWidgetsBound()
     this.setYAxis()
+    if (this._titleContainer) {
+      setElementStyle(this._titleContainer, { top: `${this.bound.y - this.bound.height}px` })
+    }
   }
 
-  public updateWidgetsBound() {
+  public setWidgetsBound() {
     this.eachWidgets((widget: IWidget) => widget.setViewBound())
   }
 
@@ -201,6 +235,11 @@ export default class IPanel extends IBound {
       }
     }
     return this
+  }
+
+  public destroy() {
+    const { titleContainer: pTitleContainer } = this.getParent()
+    pTitleContainer.removeChild(this._titleContainer)
   }
 
   public updateYExtend() {
@@ -291,16 +330,46 @@ export default class IPanel extends IBound {
 
   public updateDetailLabel(currentTime: number) {
     const indicatorType = this.getAttr('indicatorType')
-    let label: string = ''
+    const titleInfo = this.getAttr('titleInfo')
+    let labels: Label[] = []
     if (indicatorType === IndicatorType.CANDLE) {
       const visibleData = this.getVisibleSeriesData()
       const currentItem = visibleData.find(item => item.time === currentTime)
       if (currentItem) {
-        const { open, high, low, close } = currentItem
-        label = `O:${open} H:${high} L:${low} C:${close}`
+        const { time, open, high, low, close } = currentItem
+        const styles = close > open ? { color: ColorMap.CandleGreen } : { color: ColorMap.CandleRed }
+        labels.push(
+          { label: formatTime(time), key: 't' },
+          { label: 'O:' },
+          { label: `${open}`, key: 'o', styles },
+          { label: 'H:' },
+          { label: `${high}`, key: 'h', styles },
+          { label: 'L:' },
+          { label: `${low}`, key: low, styles },
+          { label: 'C:' },
+          { label: `${close}`, key: 'c', styles },
+        )
       }
+    } else {
+      labels = this._getTitleLabels(currentTime)
     }
-    this.eachWidgets((widget: IWidget) => widget.plotDetailLabel(label))
+    labels.forEach(item => {
+      const { label, key, styles = {} } = item
+      if (this._isFirstWatch) {
+        const ele = createElement('span', { paddingRight: '5px' })
+        this._titleContainer.appendChild(ele)
+        if (key) {
+          titleInfo[key] = ''
+          this.watchProperty(titleInfo, key, ele)
+        } else {
+          ele.textContent = label
+        }
+      }
+      key && this.setWatchProperty(titleInfo, key, label, styles)
+    })
+    if (labels.length > 0 && this._isFirstWatch) {
+      this._isFirstWatch = false
+    }
   }
 
   private getUpdatedBound(): Bound {
@@ -317,9 +386,31 @@ export default class IPanel extends IBound {
       y += currentPanel.bound.height + GapWidgetHeight
     }
     const height = clearHeight * this._weight
-    const viewWidth = width - margin.left - margin.right
+    const viewWidth = width - margin.left
     y += height
     return { ...this.bound, y, height, width: viewWidth }
+  }
+
+  private _initTitleContainer() {
+    const { x, y, height, width } = this.getBound()
+    const styles = {
+      position: 'absolute',
+      display: 'flex',
+      top: `${y - height}px`,
+      left: `${x}px`,
+      width: `${width - this._yAxisWidth}px`,
+      margin: 0,
+      padding: '3px 8px',
+      fontSize: '12px',
+      color: ColorMap.White,
+    }
+    if (this._titleContainer) {
+      setElementStyle(this._titleContainer, styles)
+    } else {
+      const { titleContainer: pTitleContainer } = this.getParent()
+      this._titleContainer = createElement('div', styles)
+      pTitleContainer.appendChild(this._titleContainer)
+    }
   }
 
   private _initWidgets() {
@@ -337,13 +428,17 @@ export default class IPanel extends IBound {
     this.on('mousemove', this._onmousemove.bind(this))
     const isShowClose = this.getAttr('isShowClose')
     isShowClose && this.on('click', this._onclick.bind(this))
+    const parent = this.getParent()
+    parent.on(`currentTime${CommonKeys.Change}`, ({ newVal }) => {
+      this.updateDetailLabel(newVal)
+    })
   }
 
   private _onclick(evt: CommonObject) {
     const parent = this.getParent()
     const viewPoint = this.transformPointToView(evt.point)
     if (this.isHoverCloseIcon(viewPoint)) {
-      parent.closeIndicatorPanel(this)
+      parent.closeIndicatorPanel(this.getAttr('indicatorType'))
     }
   }
 
@@ -379,5 +474,22 @@ export default class IPanel extends IBound {
       }, [])
     }
     return [Math.min(...values), Math.max(...values)]
+  }
+
+  private _getTitleLabels(currentTime: number): Label[] {
+    const labels: Label[] = []
+    const title = this.getAttr('title')
+    labels.push({ label: title })
+    this._result.forEach(({ data, color }, index) => {
+      const currentItem = data.find(item => item.time === currentTime)
+      if (currentItem) {
+        labels.push({ label: `${currentItem.value}`, key: `${title}${index}`, styles: { color } })
+      }
+    })
+    return labels
+  }
+
+  private _afterSetParent() {
+    this._initEvents()
   }
 }

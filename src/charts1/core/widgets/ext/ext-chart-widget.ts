@@ -1,7 +1,7 @@
 import BaseChartWidget from '../base-chart-widget'
 import ExtChartRenderer from '../../renderers/ext/ext-chart-renderer'
 import { setCanvasContextStyle } from '../../../util/helper'
-import { ColorMap, TextBaseLine, DrawMode } from '../../../typeof/type'
+import { DrawMode } from '../../../typeof/type'
 import IPanel from '../IPanel'
 
 export default class ExtChartWidget extends BaseChartWidget {
@@ -12,7 +12,6 @@ export default class ExtChartWidget extends BaseChartWidget {
   public render(drawMode: DrawMode) {
     const root = this.getRoot()
     const parent = this.getParent() as IPanel
-    const title = parent.getAttr('title')
     const frameCtx = root.getFrameContext()
     const hitCtx = root.getHitContext()
     const sceneCtx = root.getContext()
@@ -24,13 +23,6 @@ export default class ExtChartWidget extends BaseChartWidget {
     const { xData, yData } = this.getXYTicksData()
     this.renderer.drawGrid(sceneCtx, this.bound, xData, yData)
     if (drawMode === DrawMode.All) {
-      // draw title
-      setCanvasContextStyle(frameCtx, {
-        fillStyle: ColorMap.LightGray,
-        textBaseline: TextBaseLine.Middle,
-        strokeStyle: ColorMap.LightGray,
-      })
-      this.renderer.drawTitle(frameCtx, title, { x: 10, y: -this.bound.height + 10 })
       const isShowClose = parent.getAttr('isShowClose')
       isShowClose && this._drawCloseIcon(frameCtx)
     }

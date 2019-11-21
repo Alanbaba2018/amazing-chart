@@ -44,10 +44,10 @@ export default class CandlestickWidget extends BaseChartWidget {
     const _hitCtx = root.getHitContext()
     this.initialCtxs([_hitCtx])
     setCanvasContextStyle(_hitCtx, {
-      fillStyle: ColorMap.LightGray,
+      fillStyle: ColorMap.White,
       textBaseline: TextBaseLine.Middle,
       strokeStyle: ColorMap.LightGray,
-      font: '16px Arial',
+      font: '12px Arial',
     })
     this.renderer.drawTitle(_hitCtx, label, { x: 10, y: -this.bound.height + 10 })
     this.restoreCtxs([_hitCtx])
