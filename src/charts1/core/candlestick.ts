@@ -222,6 +222,12 @@ export default class Candlestick extends BaseView {
     return this._maxTimestamp
   }
 
+  public setCurrentItemByTime(currentTime: number) {
+    const seriesData = this.getSeriesData()
+    const _item = seriesData.find(item => item.time === currentTime)
+    _item && this.setAttr('currentItem', _item)
+  }
+
   public resize() {
     const container = this.getAttr('container')
     if (!container) return
@@ -438,6 +444,7 @@ export default class Candlestick extends BaseView {
     } else {
       Object.assign(lastItem, addItem)
     }
+    this.setAttr('currentItem', addItem)
     this.updateYExtend()
     this.update()
   }

@@ -1,6 +1,8 @@
-import { CandlestickItem, ChartType, ColorMap } from '../typeof/type'
-// import { isNumber } from '../util/type-check'
+/* eslint-disable max-lines*/
+import { CandlestickItem, ChartType, ColorMap, CommonObject } from '../typeof/type'
 import * as IndicatorHelper from '../indicator'
+import { isNumber } from '../util/type-check'
+import { formatNumber } from '../util/helper'
 
 export interface PlotItem {
   time: number
@@ -18,9 +20,15 @@ export interface IndicatorResult {
   lineWidth?: number
   [k: string]: any
 }
+interface Label {
+  label: string
+  key?: string
+  styles?: CommonObject
+}
 interface IndicatorBase {
   defaultProps: DefaultProps
   getResult(data: CandlestickItem[], params: any, source: string): IndicatorResult[]
+  getLabel(time: number, result: IndicatorResult[], params: any): Label[]
 }
 
 function combinData(seriesData: CandlestickItem[], lists: number[][]): PlotItem[][] {
@@ -49,6 +57,24 @@ const SMA: IndicatorBase = {
     })
     return results
   },
+  getLabel(time: number, results: IndicatorResult[], { periods = [] }) {
+    return results.reduce((acc: Label[], { data, color }, index) => {
+      const _currentItem = data.find(item => item.time === time)
+      if (_currentItem) {
+        acc.push(
+          {
+            label: `MA(${periods[index]}):`,
+          },
+          {
+            label: `${_currentItem.value}`,
+            key: `MA${index}`,
+            styles: { color },
+          },
+        )
+      }
+      return acc
+    }, [])
+  },
 }
 
 const VOL: IndicatorBase = {
@@ -59,19 +85,25 @@ const VOL: IndicatorBase = {
   },
   getResult(
     seriesData: CandlestickItem[],
-    { periods = [], source = 'volume', upColor = ColorMap.CandleRed, downColor = ColorMap.CandleGreen, colors = [] },
+    {
+      period,
+      source = 'volume',
+      upColor = ColorMap.CandleRed,
+      downColor = ColorMap.CandleGreen,
+      maColor = ColorMap.White,
+    },
   ) {
     const volumes = seriesData.map(item => item[source])
     const results: IndicatorResult[] = []
-    periods.forEach((period, index) => {
+    if (period) {
       const values: number[] = IndicatorHelper.SMA.calculate({ period, values: volumes })
       const [data] = combinData(seriesData, [values])
       results.push({
         data,
         chartType: ChartType.Line,
-        color: colors[index],
+        color: maColor,
       })
-    })
+    }
     const upData: PlotItem[] = []
     const downData: PlotItem[] = []
     for (let i = 0; i < seriesData.length; i++) {
@@ -79,20 +111,31 @@ const VOL: IndicatorBase = {
       const list = item.close > item.open ? upData : downData
       list.push({ time: item.time, value: volumes[i] })
     }
-    const extent = [Math.min(...volumes), Math.max(...volumes)]
     results.push({
       data: upData,
       chartType: ChartType.Bar,
       color: upColor,
-      extent,
     })
     results.push({
       data: downData,
       chartType: ChartType.Bar,
       color: downColor,
-      extent,
     })
     return results
+  },
+  getLabel(time: number, results: IndicatorResult[], { period }) {
+    const labels: Label[] = []
+    results.forEach(({ data, color }, index) => {
+      if (index === 0) {
+        const titleLabel = isNumber(period) ? { label: `VOL(${period})` } : { label: `VOL` }
+        labels.push(titleLabel)
+      }
+      const _currentItem = data.find(item => item.time === time)
+      if (_currentItem) {
+        labels.push({ label: formatNumber(_currentItem.value), key: `VOL${index}`, styles: { color } })
+      }
+    })
+    return labels
   },
 }
 
@@ -117,6 +160,17 @@ const EMA: IndicatorBase = {
     })
     return results
   },
+  getLabel(time: number, results: IndicatorResult[], { periods = [] }) {
+    const labels: Label[] = []
+    labels.push({ label: `EMA(${periods.join(',')})` })
+    results.forEach(({ data, color }, index) => {
+      const _currentItem = data.find(item => item.time === time)
+      if (_currentItem) {
+        labels.push({ label: formatNumber(_currentItem.value), key: `EMA${index}`, styles: { color } })
+      }
+    })
+    return labels
+  },
 }
 
 const WMA: IndicatorBase = {
@@ -139,6 +193,17 @@ const WMA: IndicatorBase = {
       })
     })
     return results
+  },
+  getLabel(time: number, results: IndicatorResult[], { periods = [] }) {
+    const labels: Label[] = []
+    labels.push({ label: `WMA(${periods.join(', ')})` })
+    results.forEach(({ data, color }, index) => {
+      const _currentItem = data.find(item => item.time === time)
+      if (_currentItem) {
+        labels.push({ label: formatNumber(_currentItem.value), key: `WMA${index}`, styles: { color } })
+      }
+    })
+    return labels
   },
 }
 
@@ -207,6 +272,17 @@ const MACD: IndicatorBase = {
     })
     return results
   },
+  getLabel(time: number, results: IndicatorResult[], { fastPeriod, slowPeriod, signalPeriod }) {
+    const labels: Label[] = []
+    labels.push({ label: `MACD(${fastPeriod}, ${slowPeriod}, ${signalPeriod})` })
+    results.forEach(({ data, color }, index) => {
+      const _currentItem = data.find(item => item.time === time)
+      if (_currentItem) {
+        labels.push({ label: formatNumber(_currentItem.value), key: `MACD${index}`, styles: { color } })
+      }
+    })
+    return labels
+  },
 }
 
 const RSI: IndicatorBase = {
@@ -228,6 +304,17 @@ const RSI: IndicatorBase = {
       })
     })
     return results
+  },
+  getLabel(time: number, results: IndicatorResult[], { periods = [] }) {
+    const labels: Label[] = []
+    labels.push({ label: `RSI(${periods.join(', ')})` })
+    results.forEach(({ data, color }, index) => {
+      const _currentItem = data.find(item => item.time === time)
+      if (_currentItem) {
+        labels.push({ label: formatNumber(_currentItem.value), key: `RSI${index}`, styles: { color } })
+      }
+    })
+    return labels
   },
 }
 
@@ -267,6 +354,17 @@ const BOLL: IndicatorBase = {
       color: colors[2],
     })
     return results
+  },
+  getLabel(time: number, results: IndicatorResult[], { period, stdDev }) {
+    const labels: Label[] = []
+    labels.push({ label: `BB(${period}, ${stdDev})` })
+    results.forEach(({ data, color }, index) => {
+      const _currentItem = data.find(item => item.time === time)
+      if (_currentItem) {
+        labels.push({ label: formatNumber(_currentItem.value), key: `BB${index}`, styles: { color } })
+      }
+    })
+    return labels
   },
 }
 
@@ -309,6 +407,18 @@ const KDJ: IndicatorBase = {
       lineWidth,
     })
     return results
+  },
+  getLabel(time: number, results: IndicatorResult[], { periods = [] }) {
+    const labels: Label[] = []
+    labels.push({ label: `KDJ(${periods.join(', ')})` })
+    const s = ['K', 'D', 'J']
+    results.forEach(({ data, color }, index) => {
+      const _currentItem = data.find(item => item.time === time)
+      if (_currentItem) {
+        labels.push({ label: `${s[index]} ${formatNumber(_currentItem.value)}`, key: `KDJ${index}`, styles: { color } })
+      }
+    })
+    return labels
   },
 }
 

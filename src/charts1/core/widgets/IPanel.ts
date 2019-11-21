@@ -186,6 +186,9 @@ export default class IPanel extends IBound {
     this.setBound(this.getUpdatedBound())
     this.setWidgetsBound()
     this.setYAxis()
+    if (this._titleContainer) {
+      setElementStyle(this._titleContainer, { top: `${this.bound.y - this.bound.height}px` })
+    }
   }
 
   public updateViewBoundHeight(dh: number, dy: number) {
@@ -328,31 +331,9 @@ export default class IPanel extends IBound {
     }
   }
 
-  public updateDetailLabel(currentTime: number) {
-    const indicatorType = this.getAttr('indicatorType')
+  public updateTitleLabel(currentItem: CandlestickItem) {
     const titleInfo = this.getAttr('titleInfo')
-    let labels: Label[] = []
-    if (indicatorType === IndicatorType.CANDLE) {
-      const visibleData = this.getVisibleSeriesData()
-      const currentItem = visibleData.find(item => item.time === currentTime)
-      if (currentItem) {
-        const { time, open, high, low, close } = currentItem
-        const styles = close > open ? { color: ColorMap.CandleGreen } : { color: ColorMap.CandleRed }
-        labels.push(
-          { label: formatTime(time), key: 't' },
-          { label: 'O:' },
-          { label: `${open}`, key: 'o', styles },
-          { label: 'H:' },
-          { label: `${high}`, key: 'h', styles },
-          { label: 'L:' },
-          { label: `${low}`, key: low, styles },
-          { label: 'C:' },
-          { label: `${close}`, key: 'c', styles },
-        )
-      }
-    } else {
-      labels = this._getTitleLabels(currentTime)
-    }
+    const labels: Label[] = this._getTitleLabels(currentItem)
     labels.forEach(item => {
       const { label, key, styles = {} } = item
       if (this._isFirstWatch) {
@@ -396,6 +377,7 @@ export default class IPanel extends IBound {
     const styles = {
       position: 'absolute',
       display: 'flex',
+      flexWrap: 'wrap',
       top: `${y - height}px`,
       left: `${x}px`,
       width: `${width - this._yAxisWidth}px`,
@@ -429,8 +411,8 @@ export default class IPanel extends IBound {
     const isShowClose = this.getAttr('isShowClose')
     isShowClose && this.on('click', this._onclick.bind(this))
     const parent = this.getParent()
-    parent.on(`currentTime${CommonKeys.Change}`, ({ newVal }) => {
-      this.updateDetailLabel(newVal)
+    parent.on(`currentItem${CommonKeys.Change}`, ({ newVal }) => {
+      this.updateTitleLabel(newVal)
     })
   }
 
@@ -476,16 +458,26 @@ export default class IPanel extends IBound {
     return [Math.min(...values), Math.max(...values)]
   }
 
-  private _getTitleLabels(currentTime: number): Label[] {
-    const labels: Label[] = []
-    const title = this.getAttr('title')
-    labels.push({ label: title })
-    this._result.forEach(({ data, color }, index) => {
-      const currentItem = data.find(item => item.time === currentTime)
-      if (currentItem) {
-        labels.push({ label: `${currentItem.value}`, key: `${title}${index}`, styles: { color } })
-      }
-    })
+  private _getTitleLabels(currentItem: CandlestickItem): Label[] {
+    const indicatorType = this.getAttr('indicatorType')
+    let labels: Label[] = []
+    if (indicatorType === IndicatorType.CANDLE) {
+      const { time, open, high, low, close } = currentItem
+      const styles = close > open ? { color: ColorMap.CandleGreen } : { color: ColorMap.CandleRed }
+      labels.push(
+        { label: formatTime(time), key: 't' },
+        { label: 'O:' },
+        { label: `${open}`, key: 'o', styles },
+        { label: 'H:' },
+        { label: `${high}`, key: 'h', styles },
+        { label: 'L:' },
+        { label: `${low}`, key: 'l', styles },
+        { label: 'C:' },
+        { label: `${close}`, key: 'c', styles },
+      )
+    } else {
+      labels = Indicator[indicatorType].getLabel(currentItem.time, this._result, this.getAttr('params'))
+    }
     return labels
   }
 

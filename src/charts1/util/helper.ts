@@ -271,8 +271,7 @@ export function isBoundContain(bound: Bound, point: Point): boolean {
 // ---------------End geometry---------------------
 
 export function getDevicePixelRatio(): number {
-  // return window.devicePixelRatio || 1
-  return 2
+  return window.devicePixelRatio || 1
 }
 
 export function isMobile(): boolean {

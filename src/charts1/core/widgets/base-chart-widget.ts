@@ -51,22 +51,19 @@ export default abstract class BaseChartWidget extends IWidget {
 
   private mousemove(evt: any) {
     const root = this.getRoot()
-    const parent = this.getParent() as IPanel
+    const [_hitCtx, xAxis] = [root.getHitContext(), root.getXAxis()]
     if (!this.getAttr('isMouseover')) {
       setElementStyle(root.getHitCanvas(), { cursor: 'crosshair' })
     }
     const { show: isShowCrossLine = false } = root.getAttr('crossHair')
     if (!isShowCrossLine) return
-    const _hitCtx = root.getHitContext()
-    const xAxis = root.getXAxis()
     const { visibleViewHeight } = root
-    const { yAxis } = parent
+    const { yAxis } = this.getParent() as IPanel
     const { lineColor, xLabelColor, yLabelColor, labelBackground } = root.getAttr('crossHair')
     const viewPoint = this.transformPointToView(evt.point)
     const xValue = xAxis.getValueOfCoord(viewPoint.x)
     // set currentTime
-    root.setAttr('currentTime', xValue)
-    // root.setCurrentTime(xValue)
+    root.setCurrentItemByTime(xValue)
     // set x to unit center
     viewPoint.x = xAxis.getCoordOfValue(xValue)
     Canvas.clearRect(_hitCtx)
@@ -99,7 +96,7 @@ export default abstract class BaseChartWidget extends IWidget {
 
   private onmousedown(evt: any) {
     const _evt = evt.originEvent as TouchEvent
-    if (_evt.targetTouches && _evt.targetTouches.length === 2) {
+    if (_evt.touches && _evt.touches.length === 2) {
       this._isScaling = true
       this.onmousescale(evt)
       return
@@ -124,7 +121,7 @@ export default abstract class BaseChartWidget extends IWidget {
       const { clientX: mClientX, clientX1: mClientX1 } = e
       const dis2 = Math.abs(mClientX - mClientX1)
       const diff = Math.abs(dis2 - dis1)
-      if (diff < 8) return
+      if (diff < 5) return
       if (dis2 > dis1) {
         parent.zoomOut(centerTime)
       } else {
