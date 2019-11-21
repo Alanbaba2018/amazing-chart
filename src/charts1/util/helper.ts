@@ -322,3 +322,26 @@ export function generateScale(max: number, min: number, splitNumber: number) {
   const step = fixedNum((maxi - mini) / splitNumber)
   return { max: maxi, min: mini, step }
 }
+
+export function debounce(fn, wait) {
+  let timer: null | NodeJS.Timeout = null
+  return (...args) => {
+    if (timer) {
+      clearTimeout(timer)
+    }
+    timer = setTimeout(() => {
+      fn.apply(null, [...args])
+    }, wait)
+  }
+}
+
+export function throttle(fn, wait) {
+  let lastTime: number | undefined
+  return (...args) => {
+    const now = +new Date()
+    if (!lastTime || now - lastTime > wait) {
+      fn.call(null, ...args)
+      lastTime = now
+    }
+  }
+}

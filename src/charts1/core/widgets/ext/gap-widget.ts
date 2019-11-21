@@ -42,7 +42,7 @@ export default class GapWidget extends IWidget {
     const frameCtx = parent.getFrameContext()
     frameCtx.save()
     this.setCanvasTransform(frameCtx)
-    setCanvasContextStyle(frameCtx, { fillStyle: ColorMap.Black, strokeStyle: ColorMap.Gray, lineWidth: 2 })
+    setCanvasContextStyle(frameCtx, { fillStyle: ColorMap.Black, strokeStyle: ColorMap.Gray, lineWidth: 1.5 })
     this.renderer.draw(frameCtx, this.bound)
     frameCtx.restore()
   }

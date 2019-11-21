@@ -87,7 +87,7 @@ export default class TimelineWidget extends IWidget {
     this.setBound({
       x: margin.left,
       y: height - margin.bottom,
-      width: width - margin.left - margin.right,
+      width: width - margin.left,
       height: this.getAttr('height'),
     })
   }

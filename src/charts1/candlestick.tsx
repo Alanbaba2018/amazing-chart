@@ -13,7 +13,6 @@ import CandlestickPanel from './core/candlestick'
 
 const propsToUpdate: string[] = [
   'seriesData',
-  'margin',
   'background',
   'xAxis',
   'yAxis',

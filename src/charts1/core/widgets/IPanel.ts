@@ -144,7 +144,7 @@ export default class IPanel extends IBound {
     this.setBound({
       x: margin.left,
       y: frontPanelY + viewHeight,
-      width: width - margin.left - margin.right,
+      width: width - margin.left,
       height: viewHeight,
     })
     this.updateWidgetsBound()

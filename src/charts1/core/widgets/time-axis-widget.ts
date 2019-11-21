@@ -19,7 +19,7 @@ export default class TimeAxisWidget extends IWidget {
 
   public render(drawMode: DrawMode) {
     const parent = this.getRoot()
-    const { xAxis: xAxisConfig, yAxis } = parent.getConfig()
+    const { xAxis: xAxisConfig, margin } = parent.getConfig()
     const axisCtx: CanvasRenderingContext2D = parent.getAxisContext()
     const frameCtx: CanvasRenderingContext2D = parent.getFrameContext()
     this.initialCtxs([axisCtx, frameCtx])
@@ -39,7 +39,7 @@ export default class TimeAxisWidget extends IWidget {
       const rightBottomBound = {
         x: this.bound.width,
         y: 0,
-        width: yAxis.width,
+        width: margin.right,
         height: xAxisConfig.height,
       }
       this.renderer.drawRightBottomBoundBorder(frameCtx, rightBottomBound)
@@ -49,11 +49,11 @@ export default class TimeAxisWidget extends IWidget {
 
   public setViewBound() {
     const parent = this.getRoot()
-    const { xAxis, yAxis, margin, width, height, timeline } = parent.getConfig()
+    const { xAxis, margin, width, height, timeline } = parent.getConfig()
     this.setBound({
       x: margin.left,
       y: height - timeline.height - margin.bottom,
-      width: width - yAxis.width - margin.left - margin.right,
+      width: width - margin.left - margin.right,
       height: xAxis.height,
     })
   }

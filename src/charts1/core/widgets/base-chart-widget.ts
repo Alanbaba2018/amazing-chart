@@ -29,11 +29,11 @@ export default abstract class BaseChartWidget extends IWidget {
     const root = this.getRoot()
     const parent = this.getParent() as IPanel
     const bound = parent.getBound()
-    const yAxis = root.getAttr('yAxis')
+    const margin = root.getAttr('margin')
     this.setBound({
       x: bound.x,
       y: bound.y,
-      width: bound.width - yAxis.width,
+      width: bound.width - margin.right,
       height: bound.height,
     })
   }

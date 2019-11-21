@@ -12,7 +12,7 @@ export default class Axis {
   private _displayUnitWidth: number = 0
 
   // current scale ratio, so that we can calculate y-Extent updated map to axis
-  protected _scaleCoeff: number = 2
+  protected _scaleCoeff: number = 1.5
 
   protected _maxScaleCoeff: number = 4
 

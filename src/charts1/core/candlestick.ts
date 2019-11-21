@@ -26,7 +26,7 @@ import { isString } from '../util/type-check'
 import EventProxy from './eventProxy'
 
 export default class Candlestick extends BaseView {
-  protected defaultConfig = { ...CandlestickOptions }
+  protected defaultConfig = { ...CandlestickOptions, margin: { left: 0, top: 0, right: 60, bottom: 0 } }
 
   protected _canvas: HTMLCanvasElement // main scene canvas
 
@@ -289,8 +289,8 @@ export default class Candlestick extends BaseView {
   }
 
   public setTimeAxis(centerTime?: number) {
-    const { yAxis, margin, width } = this.getConfig()
-    const viewWidth = width - yAxis.width - margin.left - margin.right
+    const { margin, width } = this.getConfig()
+    const viewWidth = width - margin.left - margin.right
     const xExtent = this.getTimeExtent()
     const [, maxTime] = xExtent
     this._maxTimestamp = maxTime
