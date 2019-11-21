@@ -3,7 +3,6 @@ import ExtChartRenderer from '../../renderers/ext/ext-chart-renderer'
 import { setCanvasContextStyle } from '../../../util/helper'
 import { ColorMap, TextBaseLine, DrawMode } from '../../../typeof/type'
 import IPanel from '../IPanel'
-import Indicator from '../../indicator'
 
 export default class ExtChartWidget extends BaseChartWidget {
   public renderer: ExtChartRenderer = new ExtChartRenderer()
@@ -46,17 +45,8 @@ export default class ExtChartWidget extends BaseChartWidget {
   }
 
   private _renderIndicatorCharts(ctx: CanvasRenderingContext2D) {
-    const root = this.getRoot()
-    const { indicatorViews } = root
-    const seriesData = root.getSeriesData()
-    indicatorViews.forEach(view => {
-      if (!view.isHistBase) {
-        const curIndicator = Indicator[view.type]
-        if (curIndicator) {
-          const results = curIndicator.getResult(seriesData, view.params)
-          results.forEach(this.plotChart.bind(this, ctx))
-        }
-      }
-    })
+    const parent = this.getParent() as IPanel
+    const results = parent.chartResult
+    results.forEach(this.plotChart.bind(this, ctx))
   }
 }

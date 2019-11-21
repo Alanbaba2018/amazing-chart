@@ -42,7 +42,7 @@ export default class GapWidget extends IWidget {
     const frameCtx = parent.getFrameContext()
     frameCtx.save()
     this.setCanvasTransform(frameCtx)
-    setCanvasContextStyle(frameCtx, { fillStyle: ColorMap.Black, strokeStyle: ColorMap.Gray })
+    setCanvasContextStyle(frameCtx, { fillStyle: ColorMap.Black, strokeStyle: ColorMap.Gray, lineWidth: 2 })
     this.renderer.draw(frameCtx, this.bound)
     frameCtx.restore()
   }
@@ -78,6 +78,7 @@ export default class GapWidget extends IWidget {
       this._frontPanel.updateViewBoundHeight(dy, dy)
       this.setBound({ ...this.bound, y: this.bound.y + dy })
       this._nextPanel.updateViewBoundHeight(-dy, 0)
+      root.update()
       startY = moveY
     })
     root.on('mouseup.gap', this._clearDragEvent.bind(this))

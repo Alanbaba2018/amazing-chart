@@ -25,7 +25,6 @@ import { setElementStyle, isBoundContain } from '../../util/helper'
 interface IPanelOptions {
   indicatorType: IndicatorType
   params?: CommonObject
-  styles?: CommonObject
   [k: string]: any
 }
 
@@ -40,8 +39,6 @@ export default class IPanel extends IBound {
 
   // Base or Indicator chart
   private _panelType: PanelType
-
-  private _title: string = ''
 
   private _weight: number = 1
 
@@ -61,12 +58,12 @@ export default class IPanel extends IBound {
     return this._weight
   }
 
-  public get title(): string {
-    return this._title
-  }
-
   public get xAxis(): Axis {
     return this.getParent().getXAxis()
+  }
+
+  public get chartResult(): IndicatorResult[] {
+    return this._result
   }
 
   constructor(panelType: PanelType, options: IPanelOptions) {
@@ -85,7 +82,7 @@ export default class IPanel extends IBound {
     if (isScaleCenter) {
       this._yAxis = new Axis(yExtent, [padding, this.bound.height - padding])
     } else {
-      this._yAxis = new FixAxis([0, yExtent[1]], [padding, this.bound.height - padding])
+      this._yAxis = new FixAxis([0, yExtent[1]], [0, this.bound.height - padding])
     }
   }
 
@@ -169,7 +166,6 @@ export default class IPanel extends IBound {
     this.setBound({ ...this.bound, y: this.bound.y + dy, height: updatedHeight })
     this.updateWidgetsBound()
     this.setYAxis()
-    parent.update()
   }
 
   public updateWidgetsBound() {
@@ -251,28 +247,6 @@ export default class IPanel extends IBound {
     }
   }
 
-  public getCustomBarDatas(key: string): StandardBar[] {
-    const barDatas: StandardBar[] = []
-    const visibleData = this.getVisibleSeriesData()
-    const parent = this.getParent()
-    const { barWeight = 0.3 } = parent.getAttr('candlestick')
-    const unitWidth = this.xAxis.unitWidth * barWeight
-    const zeroCoord = this.yAxis.getCoordOfValue(0)
-    visibleData.forEach(item => {
-      if (item[key]) {
-        const y = this.yAxis.getCoordOfValue(item[key])
-        const x = this.xAxis.getCoordOfValue(item.time)
-        barDatas.push({
-          x: x - unitWidth,
-          y,
-          width: unitWidth * 2,
-          height: y - zeroCoord,
-        })
-      }
-    })
-    return barDatas
-  }
-
   public getBarDatas(data: PlotItem[]): StandardBar[] {
     const parent = this.getParent()
     const { barWeight = 0.3 } = parent.getAttr('candlestick')
@@ -309,10 +283,24 @@ export default class IPanel extends IBound {
 
   public updateChartData() {
     const indicatorType = this.getAttr('indicatorType')
-    const seriesData = this.getSeriesData()
     if (indicatorType !== IndicatorType.CANDLE) {
+      const seriesData = this.getSeriesData()
       this._result = Indicator[indicatorType].getResult(seriesData, this.getAttr('params'))
     }
+  }
+
+  public updateDetailLabel(currentTime: number) {
+    const indicatorType = this.getAttr('indicatorType')
+    let label: string = ''
+    if (indicatorType === IndicatorType.CANDLE) {
+      const visibleData = this.getVisibleSeriesData()
+      const currentItem = visibleData.find(item => item.time === currentTime)
+      if (currentItem) {
+        const { open, high, low, close } = currentItem
+        label = `O:${open} H:${high} L:${low} C:${close}`
+      }
+    }
+    this.eachWidgets((widget: IWidget) => widget.plotDetailLabel(label))
   }
 
   private getUpdatedBound(): Bound {
@@ -368,10 +356,10 @@ export default class IPanel extends IBound {
   }
 
   private _getYExtent(): number[] {
-    const visibleData = this.getVisibleSeriesData()
     let values: number[] = []
     const indicatorType = this.getAttr('indicatorType')
     if (indicatorType === IndicatorType.CANDLE) {
+      const visibleData = this.getVisibleSeriesData()
       values = visibleData.reduce((acc: number[], cur: CandlestickItem) => {
         acc.push(...[cur.high, cur.low])
         return acc

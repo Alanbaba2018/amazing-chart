@@ -143,4 +143,8 @@ export default abstract class IRenderer {
       ctx.stroke()
     })
   }
+
+  public drawTitle = (ctx: CanvasRenderingContext2D, text: string, point: Point) => {
+    Canvas.drawText(ctx, text, point.x, point.y)
+  }
 }

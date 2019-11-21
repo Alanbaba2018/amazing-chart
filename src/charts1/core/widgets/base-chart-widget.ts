@@ -8,6 +8,8 @@ import IPanel from './IPanel'
 export default abstract class BaseChartWidget extends IWidget {
   private defaultConfig = { zIndex: 1, showClose: false, iconSize: 40, margin: 10 }
 
+  private _isScaling: boolean = false
+
   constructor() {
     super()
     this._initEvents()
@@ -62,10 +64,12 @@ export default abstract class BaseChartWidget extends IWidget {
     const { lineColor, xLabelColor, yLabelColor, labelBackground } = root.getAttr('crossHair')
     const viewPoint = this.transformPointToView(evt.point)
     const xValue = xAxis.getValueOfCoord(viewPoint.x)
+    // set currentTime
+    root.setCurrentTime(xValue)
+    // set x to unit center
     viewPoint.x = xAxis.getCoordOfValue(xValue)
     Canvas.clearRect(_hitCtx)
-    _hitCtx.save()
-    this.setCanvasTransform(_hitCtx)
+    this.initialCtxs([_hitCtx])
     setCanvasContextStyle(_hitCtx, { strokeStyle: lineColor })
     const margin = root.getAttr('margin')
     const { y, width } = this.bound
@@ -81,9 +85,8 @@ export default abstract class BaseChartWidget extends IWidget {
       text: yAxis.getValueOfCoord(viewPoint.y).toFixed(2),
       color: yLabelColor,
     }
-    const bgColor = labelBackground
-    this.renderer.drawAxisValueLabel(_hitCtx, { xLabel, yLabel, bgColor })
-    _hitCtx.restore()
+    this.renderer.drawAxisValueLabel(_hitCtx, { xLabel, yLabel, bgColor: labelBackground })
+    this.restoreCtxs([_hitCtx])
   }
 
   private onmouseout() {
@@ -95,12 +98,14 @@ export default abstract class BaseChartWidget extends IWidget {
 
   private onmousedown(evt: any) {
     const _evt = evt.originEvent as TouchEvent
-    if (_evt.targetTouches && _evt.targetTouches.length === 2) {
+    if (_evt.touches && _evt.touches.length === 2) {
+      this._isScaling = true
       this.onmousescale(evt)
       return
     }
     let { x: startX } = evt.point
     this.on('mousemove.mousedown', (e: any) => {
+      if (this._isScaling) return
       const { x: moveX } = e.point
       this.getRoot().shiftTimeLine(startX - moveX)
       startX = moveX
@@ -149,5 +154,6 @@ export default abstract class BaseChartWidget extends IWidget {
   private clearDragEvent() {
     this.off('mousemove.mousedown')
     this.off('mouseup.mousedown')
+    this._isScaling = false
   }
 }

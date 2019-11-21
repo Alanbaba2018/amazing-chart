@@ -522,6 +522,12 @@ export default class Candlestick extends BaseView {
     this.update()
   }
 
+  public setCurrentTime(timeValue: number) {
+    requestAnimationFrame(() => {
+      this.eachPanels(panel => panel instanceof IPanel && panel.updateDetailLabel(timeValue))
+    })
+  }
+
   public destroy() {}
 
   private zoom(timeValue: number, level: number) {

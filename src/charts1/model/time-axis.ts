@@ -12,7 +12,7 @@ export default class TimeAxis extends Axis {
 
   protected _maxScaleCoeff: number = 9
 
-  protected _minScaleCoeff: number = 0.5
+  protected _minScaleCoeff: number = 0.2
 
   private _currentTimeScale: TimeScale // current scale
 
