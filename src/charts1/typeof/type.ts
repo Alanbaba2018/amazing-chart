@@ -124,6 +124,8 @@ export enum IndicatorType {
 }
 export interface IndicatorView {
   type: IndicatorType
+  indicatorType: IndicatorType
+  subElement: HTMLElement
   params?: { [k: string]: any }
   isHistBase?: boolean
   isScaleCenter?: boolean

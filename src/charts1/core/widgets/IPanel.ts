@@ -61,9 +61,11 @@ export default class IPanel extends IBound {
 
   private _yAxisWidth: number = 60
 
+  private _wrapperContainer: HTMLElement
+
   private _titleContainer: HTMLElement
 
-  private _result: IndicatorResult[] = []
+  private _result: Map<IndicatorType, IndicatorResult[]> = new Map()
 
   private _isFirstWatch: boolean = true
 
@@ -84,7 +86,12 @@ export default class IPanel extends IBound {
   }
 
   public get chartResult(): IndicatorResult[] {
-    return this._result
+    const indicatorType = this.getAttr('indicatorType')
+    return this._result.get(indicatorType) || []
+  }
+
+  public get results(): IndicatorResult[][] {
+    return Array.from(this._result.values())
   }
 
   public get yAxisWidth(): number {
@@ -111,7 +118,7 @@ export default class IPanel extends IBound {
     if (isScaleCenter) {
       this._yAxis = new Axis(yExtent, [padding, this.bound.height - padding])
     } else {
-      this._yAxis = new FixAxis([0, yExtent[1]], [0, this.bound.height - padding])
+      this._yAxis = new FixAxis([0, yExtent[1]], [0, (this.bound.height - padding) * 0.8])
     }
   }
 
@@ -178,7 +185,7 @@ export default class IPanel extends IBound {
       height: viewHeight,
     })
     this.setWidgetsBound()
-    this._initTitleContainer()
+    this.updateTitleContainer()
   }
 
   public updateViewBound(allWeight: number = 1) {
@@ -186,9 +193,7 @@ export default class IPanel extends IBound {
     this.setBound(this.getUpdatedBound())
     this.setWidgetsBound()
     this.setYAxis()
-    if (this._titleContainer) {
-      setElementStyle(this._titleContainer, { top: `${this.bound.y - this.bound.height}px` })
-    }
+    this.updateTitleContainer()
   }
 
   public updateViewBoundHeight(dh: number, dy: number) {
@@ -200,9 +205,7 @@ export default class IPanel extends IBound {
     this.setBound({ ...this.bound, y: this.bound.y + dy, height: updatedHeight })
     this.setWidgetsBound()
     this.setYAxis()
-    if (this._titleContainer) {
-      setElementStyle(this._titleContainer, { top: `${this.bound.y - this.bound.height}px` })
-    }
+    this.updateTitleContainer()
   }
 
   public setWidgetsBound() {
@@ -240,9 +243,13 @@ export default class IPanel extends IBound {
     return this
   }
 
+  public removeIndicator(type: IndicatorType) {
+    this._result.delete(type)
+  }
+
   public destroy() {
     const { titleContainer: pTitleContainer } = this.getParent()
-    pTitleContainer.removeChild(this._titleContainer)
+    pTitleContainer.removeChild(this._wrapperContainer)
   }
 
   public updateYExtend() {
@@ -324,33 +331,99 @@ export default class IPanel extends IBound {
   }
 
   public updateChartData() {
-    const indicatorType = this.getAttr('indicatorType')
-    if (indicatorType !== IndicatorType.CANDLE) {
-      const seriesData = this.getSeriesData()
-      this._result = Indicator[indicatorType].getResult(seriesData, this.getAttr('params'))
+    const _indicatorType = this.getAttr('indicatorType')
+    const { indicatorViews } = this.getParent()
+    const seriesData = this.getSeriesData()
+    if (_indicatorType !== IndicatorType.CANDLE) {
+      const result = Indicator[_indicatorType].getResult(seriesData, this.getAttr('params'))
+      this._result.set(_indicatorType, result)
+    } else {
+      indicatorViews.forEach(({ indicatorType, isHistBase, params }) => {
+        if (!isHistBase) return
+        const curIndicator = Indicator[indicatorType]
+        if (curIndicator) {
+          const result = curIndicator.getResult(seriesData, params)
+          this._result.set(indicatorType, result)
+        }
+      })
     }
+  }
+
+  public updateTitleContainer() {
+    const parent = this.getParent()
+    const margin = parent.getAttr('margin')
+    const { x, y, height, width } = this.getBound()
+    const styles = {
+      position: 'absolute',
+      top: `${y - height}px`,
+      left: `${x}px`,
+      width: `${width - margin.right}px`,
+      padding: '3px 8px',
+      fontSize: '12px',
+      color: ColorMap.White,
+      boxSizing: 'border-box',
+    }
+    if (this._wrapperContainer) {
+      setElementStyle(this._wrapperContainer, styles)
+    } else {
+      const { titleContainer: pTitleContainer } = this.getParent()
+      this._wrapperContainer = createElement('div', styles)
+      this._titleContainer = createElement('div', { width: '100%', display: 'flex', flex: 1, lineHeight: 1.5 })
+      this._wrapperContainer.appendChild(this._titleContainer)
+      pTitleContainer.appendChild(this._wrapperContainer)
+    }
+    const currentItem = parent.getAttr('currentItem')
+    currentItem && this.updateTitleLabel(currentItem)
   }
 
   public updateTitleLabel(currentItem: CandlestickItem) {
     const titleInfo = this.getAttr('titleInfo')
-    const labels: Label[] = this._getTitleLabels(currentItem)
+    const indicatorType = this.getAttr('indicatorType')
+    const labels: Label[] = this._getTitleLabels(currentItem, indicatorType)
+    if (indicatorType === IndicatorType.CANDLE) {
+      this.updateHistBaseChartsTitle(currentItem)
+    }
     labels.forEach(item => {
       const { label, key, styles = {} } = item
       if (this._isFirstWatch) {
         const ele = createElement('span', { paddingRight: '5px' })
         this._titleContainer.appendChild(ele)
-        if (key) {
+        if (key !== undefined) {
           titleInfo[key] = ''
           this.watchProperty(titleInfo, key, ele)
         } else {
           ele.textContent = label
         }
       }
-      key && this.setWatchProperty(titleInfo, key, label, styles)
+      key !== undefined && this.setWatchProperty(titleInfo, key, label, styles)
     })
     if (labels.length > 0 && this._isFirstWatch) {
       this._isFirstWatch = false
     }
+  }
+
+  private updateHistBaseChartsTitle(currentItem: CandlestickItem) {
+    const { indicatorViews } = this.getParent()
+    const titleInfo = this.getAttr('titleInfo')
+    indicatorViews.forEach(view => {
+      const { indicatorType, subElement } = view
+      const labels = this._getTitleLabels(currentItem, indicatorType, view.params)
+      labels.forEach(item => {
+        const { label, key, styles = {} } = item
+        if (!subElement.parentNode) {
+          const ele = createElement('span', { paddingRight: '5px' })
+          subElement.appendChild(ele)
+          if (key !== undefined) {
+            titleInfo[key] = ''
+            this.watchProperty(titleInfo, key, ele)
+          } else {
+            ele.textContent = label
+          }
+        }
+        key !== undefined && this.setWatchProperty(titleInfo, key, label, styles)
+      })
+      !subElement.parentNode && this._wrapperContainer.appendChild(subElement)
+    })
   }
 
   private getUpdatedBound(): Bound {
@@ -370,29 +443,6 @@ export default class IPanel extends IBound {
     const viewWidth = width - margin.left
     y += height
     return { ...this.bound, y, height, width: viewWidth }
-  }
-
-  private _initTitleContainer() {
-    const { x, y, height, width } = this.getBound()
-    const styles = {
-      position: 'absolute',
-      display: 'flex',
-      flexWrap: 'wrap',
-      top: `${y - height}px`,
-      left: `${x}px`,
-      width: `${width - this._yAxisWidth}px`,
-      margin: 0,
-      padding: '3px 8px',
-      fontSize: '12px',
-      color: ColorMap.White,
-    }
-    if (this._titleContainer) {
-      setElementStyle(this._titleContainer, styles)
-    } else {
-      const { titleContainer: pTitleContainer } = this.getParent()
-      this._titleContainer = createElement('div', styles)
-      pTitleContainer.appendChild(this._titleContainer)
-    }
   }
 
   private _initWidgets() {
@@ -420,7 +470,7 @@ export default class IPanel extends IBound {
     const parent = this.getParent()
     const viewPoint = this.transformPointToView(evt.point)
     if (this.isHoverCloseIcon(viewPoint)) {
-      parent.closeIndicatorPanel(this.getAttr('indicatorType'))
+      parent.closeIndicatorPanelByName(this.getAttr('indicatorType'))
     }
   }
 
@@ -435,6 +485,9 @@ export default class IPanel extends IBound {
   private _getYExtent(): number[] {
     let values: number[] = []
     const indicatorType = this.getAttr('indicatorType')
+    if (this._result.size === 0) {
+      this.updateChartData()
+    }
     if (indicatorType === IndicatorType.CANDLE) {
       const visibleData = this.getVisibleSeriesData()
       values = visibleData.reduce((acc: number[], cur: CandlestickItem) => {
@@ -443,10 +496,8 @@ export default class IPanel extends IBound {
       }, [])
     } else if (Indicator[indicatorType]) {
       const visibleTimeRange = this.xAxis.domainRange
-      if (this._result.length === 0) {
-        this.updateChartData()
-      }
-      values = this._result.reduce((acc: number[], { data = [] }) => {
+      const result = this._result.get(indicatorType) || []
+      values = result.reduce((acc: number[], { data = [] }) => {
         const vals = data.reduce((_acc: number[], item: PlotItem) => {
           visibleTimeRange.contain(item.time) && _acc.push(item.value)
           return _acc
@@ -458,8 +509,7 @@ export default class IPanel extends IBound {
     return [Math.min(...values), Math.max(...values)]
   }
 
-  private _getTitleLabels(currentItem: CandlestickItem): Label[] {
-    const indicatorType = this.getAttr('indicatorType')
+  private _getTitleLabels(currentItem: CandlestickItem, indicatorType: IndicatorType, params = {}): Label[] {
     let labels: Label[] = []
     if (indicatorType === IndicatorType.CANDLE) {
       const { time, open, high, low, close } = currentItem
@@ -476,7 +526,8 @@ export default class IPanel extends IBound {
         { label: `${close}`, key: 'c', styles },
       )
     } else {
-      labels = Indicator[indicatorType].getLabel(currentItem.time, this._result, this.getAttr('params'))
+      const result = this._result.get(indicatorType) || []
+      labels = Indicator[indicatorType].getLabel(currentItem.time, result, params)
     }
     return labels
   }

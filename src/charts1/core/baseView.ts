@@ -63,6 +63,10 @@ export default abstract class BaseView extends EventHandle {
     for (let i = 0; i < this.panels.length; i++) {
       if (this.panels[i] === panel) {
         this.panels.splice(i, 1)
+        if (panel instanceof IPanel) {
+          this._indicatorViews.delete(panel.getAttr('indicatorType'))
+          panel.destroy()
+        }
         break
       }
     }
@@ -77,6 +81,7 @@ export default abstract class BaseView extends EventHandle {
         panelSet.delete(currentPanel)
         if (currentPanel instanceof IPanel) {
           this._indicatorViews.delete(currentPanel.getAttr('indicatorType'))
+          currentPanel.destroy()
         }
         if (panelSet.size === 0) return
       }
@@ -119,6 +124,11 @@ export default abstract class BaseView extends EventHandle {
 
   public filterPanels(callback: Function): Array<IPanel | IWidget> {
     return this.panels.filter(panel => callback.call(this, panel))
+  }
+
+  public getPanel(filter: (panel: IPanel | IWidget) => boolean): IPanel | IWidget | undefined {
+    const panel = this.panels.find(filter)
+    return panel
   }
 
   public getSeriesData(): CandlestickItem[] {

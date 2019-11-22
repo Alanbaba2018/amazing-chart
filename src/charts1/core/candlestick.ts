@@ -349,6 +349,7 @@ export default class Candlestick extends BaseView {
 
   public initPanels() {
     this.setVisibleViewHeight()
+    this.initIndicatorViews()
     const basePanel = new IPanel(PanelType.BASE, { indicatorType: IndicatorType.CANDLE, isScaleCenter: true })
     const timeAxisWidget = new TimeAxisWidget()
     const timelineWidget = new TimelineWidget()
@@ -357,18 +358,25 @@ export default class Candlestick extends BaseView {
     this.initPanelBound()
   }
 
-  public getIndicatorPanels(basePanel: IPanel): Array<IPanel | IWidget> {
+  public initIndicatorViews() {
     const indicatorViews = this.getAttr('indicators') || []
-    const extPanels: Array<IPanel | IWidget> = []
-    let frontPanel: IPanel = basePanel
     indicatorViews.forEach(view => {
       const indicatorType = view.type
       if (!Indicator[indicatorType]) return
       const { defaultProps } = Indicator[indicatorType]
-      const options = { params: {}, ...view, indicatorType, ...defaultProps }
+      const subElement = createElement('div', { display: 'flex', flexWrap: 'wrap', width: '100%', lineHeight: 1.5 })
+      const options = { params: {}, ...view, indicatorType, ...defaultProps, subElement }
       this._indicatorViews.set(view.type, options)
-      if (!defaultProps.isHistBase) {
-        const extPanel = new IPanel(PanelType.EXT, options)
+    })
+  }
+
+  public getIndicatorPanels(basePanel: IPanel): Array<IPanel | IWidget> {
+    const extPanels: Array<IPanel | IWidget> = []
+    let frontPanel: IPanel = basePanel
+    Array.from(this._indicatorViews.values()).forEach(view => {
+      const { isHistBase, type: indicatorType } = view
+      if (!isHistBase) {
+        const extPanel = new IPanel(PanelType.EXT, { params: {}, indicatorType, ...view })
         const gapWidget = new GapWidget(frontPanel, extPanel)
         extPanels.push(gapWidget, extPanel)
         frontPanel = extPanel
@@ -444,7 +452,8 @@ export default class Candlestick extends BaseView {
     } else {
       Object.assign(lastItem, addItem)
     }
-    this.setAttr('currentItem', addItem)
+    this.setAttr('currentItem', { ...addItem })
+    this.updateCacheResult()
     this.updateYExtend()
     this.update()
   }
@@ -472,14 +481,25 @@ export default class Candlestick extends BaseView {
   }
 
   // To do histBase chart only update candlestick chart
-  public closeIndicatorPanel(panel: string) {
+  public closeIndicatorPanelByName(panelName: string) {
     /* first: find panels related width target
     second: update frontPanel and nextPanel of gapWidget
     */
-    this._indicatorViews.delete(panel)
-    let closePanel: IPanel | undefined = this.panels.find(ipanel => {
+    const view = this._indicatorViews.get(panelName)
+    if (!view) return
+    this._indicatorViews.delete(panelName)
+    view.subElement.remove()
+    if (view.isHistBase) {
+      const basePanel = this.getPanel(panel => panel instanceof IPanel && panel.panelType === PanelType.BASE) as IPanel
+      if (basePanel) {
+        basePanel.removeIndicator(view.indicatorType)
+        basePanel.update()
+      }
+      return
+    }
+    const closePanel: IPanel | undefined = this.getPanel(ipanel => {
       const indicatorType = ipanel.getAttr('indicatorType')
-      return ipanel instanceof IPanel && indicatorType === panel
+      return ipanel instanceof IPanel && indicatorType === panelName
     }) as IPanel
     if (closePanel) {
       let frontGap!: GapWidget
@@ -508,10 +528,11 @@ export default class Candlestick extends BaseView {
     this.update()
   }
 
-  public addIndicatorPanel(type: IndicatorType, params: CommonObject = {}) {
+  public addIndicatorPanelByName(type: IndicatorType, params: CommonObject = {}) {
     if (!Indicator[type]) return
     const { defaultProps } = Indicator[type]
-    const view = { type, params, ...defaultProps }
+    const subElement = createElement('div', { display: 'flex', flexWrap: 'wrap', width: '100%' })
+    const view = { indicatorType: type, type, params, ...defaultProps, subElement }
     this._indicatorViews.set(type, view)
     if (!view.isHistBase) {
       let frontPanel!: IPanel
@@ -523,15 +544,31 @@ export default class Candlestick extends BaseView {
           break
         }
       }
-      const extPanel = new IPanel(PanelType.EXT, { indicatorType: type, params })
+      const extPanel = new IPanel(PanelType.EXT, view)
       const gapWidget = new GapWidget(frontPanel, extPanel)
       this.addPanels([gapWidget, extPanel])
       this.updatePanelBound()
+      this.update()
+    } else {
+      const basePanel = this.getPanel(panel => panel instanceof IPanel && panel.panelType === PanelType.BASE) as IPanel
+      if (basePanel) {
+        basePanel.updateChartData()
+        const currentItem = this.getAttr('currentItem')
+        currentItem && basePanel.updateTitleLabel(currentItem)
+        basePanel.update()
+      }
     }
-    this.update()
   }
 
   public destroy() {}
+
+  private updateCacheResult() {
+    this.eachPanels(panel => {
+      if (panel instanceof IPanel) {
+        panel.updateChartData()
+      }
+    })
+  }
 
   private zoom(timeValue: number, level: number) {
     if (level !== 1 && level !== -1) return
@@ -569,6 +606,7 @@ export default class Candlestick extends BaseView {
     this._visibleViewHeight = height - margin.top - margin.bottom - timeline.height - xAxis.height
   }
 
+  // To do set yAxis width accoding to data
   private initialData() {
     const seriesData = this.getSeriesData()
     if (seriesData.length > 0) {
@@ -586,7 +624,7 @@ export default class Candlestick extends BaseView {
       const oldWidth = margin.right
       margin.rigth = Math.max(yAxisWidth, oldWidth)
       oldWidth < yAxisWidth && this.initPanelBound()
-      this.setAttr('currentTime', this._maxTimestamp)
+      this.setCurrentItemByTime(this._maxTimestamp)
     }
   }
 
@@ -692,7 +730,7 @@ export default class Candlestick extends BaseView {
       }
     }
     this.eachPanels(doHandle)
-    this.setAttr('currentTime', this._maxTimestamp)
+    this.setCurrentItemByTime(this._maxTimestamp)
   }
 
   private onmousewheel(evt: CommonObject) {

@@ -71,9 +71,6 @@ export default abstract class IWidget extends IBound {
     ctx.clip()
   }
 
-  // @ts-ignore
-  public plotDetailLabel(label: string) {}
-
   public plotChart(ctx: CanvasRenderingContext2D, chart: IndicatorResult) {
     const actions = {
       [ChartType.Line]: this._plotLineChart,

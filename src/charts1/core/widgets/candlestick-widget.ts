@@ -11,7 +11,6 @@ import {
   TextBaseLine,
 } from '../../typeof/type'
 import { setCanvasContextStyle } from '../../util/helper'
-import Indicator from '../indicator'
 import IPanel from './IPanel'
 import GraphHelper from '../graphHelper'
 import Canvas from '../canvas'
@@ -80,17 +79,9 @@ export default class CandlestickWidget extends BaseChartWidget {
   }
 
   private renderIndicatorChats(ctx: CanvasRenderingContext2D) {
-    const root = this.getRoot()
-    const { indicatorViews } = root
-    const seriesData = root.getSeriesData()
-    indicatorViews.forEach(view => {
-      if (view.isHistBase) {
-        const curIndicator = Indicator[view.type]
-        if (curIndicator) {
-          const results = curIndicator.getResult(seriesData, view.params)
-          results.forEach(this.plotChart.bind(this, ctx))
-        }
-      }
+    const { results } = this.getParent() as IPanel
+    results.forEach(result => {
+      result.forEach(this.plotChart.bind(this, ctx))
     })
   }
 
