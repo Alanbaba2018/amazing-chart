@@ -368,7 +368,7 @@ export default class IPanel extends IBound {
     } else {
       const { titleContainer: pTitleContainer } = this.getParent()
       this._wrapperContainer = createElement('div', styles)
-      this._titleContainer = createElement('div', { width: '100%', display: 'flex', flex: 1, lineHeight: 1.5 })
+      this._titleContainer = createElement('div', { width: '100%', display: 'flex', flex: 1, flexWrap: 'wrap', lineHeight: 1.5 })
       this._wrapperContainer.appendChild(this._titleContainer)
       pTitleContainer.appendChild(this._wrapperContainer)
     }
