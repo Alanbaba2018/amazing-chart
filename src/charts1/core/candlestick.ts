@@ -440,6 +440,7 @@ export default class Candlestick extends BaseView {
 
   public addOrUpdateLastData(addItem: CandlestickItem) {
     const seriesData = this.getAttr('seriesData')
+    if (seriesData.length === 0) return
     this.formatItem(addItem)
     const lastItem = seriesData[seriesData.length - 1]
     if (lastItem.time !== addItem.time) {

@@ -37,7 +37,9 @@
     ]
   },
   "devDependencies": {
+    "express": "^4.17.1",
     "pre-commit": "^1.2.2",
+    "request": "^2.88.0",
     "ts-jest": "^24.1.0"
   }
 }
